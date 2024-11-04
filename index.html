@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Ramallah Waste Containers</title>  
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />  
-  <style>  
+  <title>Ramallah Waste Containers</title> 
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" /> 
+  <style> 
     body {
       margin: 0;
       height: 100%;
@@ -29,8 +29,8 @@
     /* Styling for the side note */
     .side-note {
       position: absolute;
-      bottom: 10px;
-      right: 10px;
+      top: 10px;
+      left: 10px;
       background-color: rgba(255, 255, 255, 0.9);
       padding: 15px;
       border: 1px solid #ddd;
@@ -47,10 +47,10 @@
   <div class="side-note">
     <h4>ملاحظات:</h4>
     <ul>
-      <li>تمت إضافة ميزات جديدة واستبدالها بأخرى**:</li>
-      <li>1- تم استخدام مربع المعلومات العائم <strong>Floating info Box</strong> بدلاً من نافذة منبثقة <strong>alert</strong>.</li>
+      <li>تمت إضافة ميزات جديدة واستبدالها بأخرى:</li>
+      <li>1- مربع المعلومات العائم <strong>Floating info Box</strong> بدلاً من نافذة منبثقة <strong>alert</strong>.</li>
       <li>2- تعريف الطبقات بشكل عالمي لتسهيل التحكم فيها.</li>
-      <li>3- إضافة عنصر التحكم بين الطبقات <strong>layer control</strong> </li>
+      <li>3- إضافة عنصر التحكم بين الطبقات <strong>layer control</strong> لتحسين تجربة التفاعل مع الخريطة.</li>
       <li>4- تخصيص لغة <strong>CSS</strong> للملاحظة ولتثبيتها على الجانب باستخدام <code>position: absolute;</code>.</li>
     </ul>
   </div>
@@ -104,10 +104,10 @@
             infoBox.style.display = 'block';
             infoBox.style.left = (e.containerPoint.x + 15) + 'px';
             infoBox.style.top = (e.containerPoint.y + 15) + 'px';
-            infoBox.innerHTML = 
+            infoBox.innerHTML = `
               <strong>Zone:</strong> ${feature.properties.NAME_ENGLI} <br>
               <strong>MAIL_CODE:</strong> ${feature.properties.MAIL_CODE}
-            ;
+            `;
           });
         }
       }).addTo(map);
@@ -130,10 +130,10 @@
           });
         },
         onEachFeature: function(feature, layer) {
-          layer.bindPopup(
+          layer.bindPopup(`
             <strong>Material:</strong> ${feature.properties.TYPE_OF_WA} <br>
             <strong>Size:</strong> ${feature.properties.SIZE_OF_TH}
-          );
+          `);
         }
       }).addTo(map);
 
@@ -144,6 +144,6 @@
     // Create the layer control and add it to the map
     const layerControl = L.control.layers({}, {}).addTo(map);
   </script>
-</body> 
+</body>
 </html>
 
