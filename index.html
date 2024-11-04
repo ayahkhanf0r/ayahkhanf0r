@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Ramallah Waste Containers</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
-  <style>
+  <title>Ramallah Waste Containers</title> 
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" /> 
+  <style> 
     body {
       margin: 0;
       height: 100%;
@@ -26,11 +26,34 @@
       z-index: 1000;
       display: none; /* Hidden by default */
     }
+    /* Styling for the side note */
+    .side-note {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background-color: rgba(255, 255, 255, 0.9);
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      z-index: 1000;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
   <div class="floating-info" id="infoBox"></div> <!-- Floating information box -->
+  <div class="side-note">
+    <h4>ملاحظات:</h4>
+    <ul>
+      <li>تمت إضافة ميزات جديدة واستبدالها بأخرى:</li>
+      <li>1- مربع المعلومات العائم <strong>Floating info Box</strong> بدلاً من نافذة منبثقة <strong>alert</strong>.</li>
+      <li>2- تعريف الطبقات بشكل عالمي لتسهيل التحكم فيها.</li>
+      <li>3- إضافة عنصر التحكم بين الطبقات <strong>layer control</strong> لتحسين تجربة التفاعل مع الخريطة.</li>
+      <li>4- تخصيص لغة <strong>CSS</strong> للملاحظة ولتثبيتها على الجانب باستخدام <code>position: absolute;</code>.</li>
+    </ul>
+  </div>
   <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
   <script>
@@ -123,5 +146,4 @@
   </script>
 </body>
 </html>
-
 
