@@ -61,7 +61,7 @@
 
     // Load and style the zones GeoJSON with dynamic colors and popups
     $.getJSON("RamallahZones.json", function(RZ) {
-      L.geoJson(RZ, {
+      const zonesLayer = L.geoJson(RZ, {
         style: function(feature) {
           return {
             fillColor: getColor(feature.properties.NAME_ENGLI),
@@ -75,8 +75,8 @@
           layer.on('click', function(e) {
             const infoBox = document.getElementById('infoBox');
             infoBox.style.display = 'block';
-            infoBox.style.left = e.containerPoint.x + 'px';
-            infoBox.style.top = e.containerPoint.y + 'px';
+            infoBox.style.left = (e.containerPoint.x + 15) + 'px';
+            infoBox.style.top = (e.containerPoint.y + 15) + 'px';
             infoBox.innerHTML = `
               <strong>Zone:</strong> ${feature.properties.NAME_ENGLI} <br>
               <strong>MAIL_CODE:</strong> ${feature.properties.MAIL_CODE}
@@ -88,7 +88,7 @@
 
     // Load and style the waste containers GeoJSON
     $.getJSON("wasteContainer.json", function(WC) {
-      L.geoJson(WC, {
+      const wasteContainersLayer = L.geoJson(WC, {
         pointToLayer: function(feature, latlng) {
           return L.circleMarker(latlng, {
             radius: 5,
@@ -102,7 +102,7 @@
         onEachFeature: function(feature, layer) {
           layer.bindPopup(`
             <strong>Material:</strong> ${feature.properties.TYPE_OF_WA} <br>
-            <strong>Size:</strong> ${feature.properties.SIZE_OF_TH} <br>
+            <strong>Size:</strong> ${feature.properties.SIZE_OF_TH}
           `);
         }
       }).addTo(map);
@@ -116,8 +116,6 @@
     };
 
     L.control.layers(baseLayers, overlays).addTo(map);
-    zonesLayer.addTo(map);
-    wasteContainersLayer.addTo(map);
   </script>
 </body>
 </html>
