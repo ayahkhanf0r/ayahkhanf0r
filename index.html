@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Ramallah Waste Containers</title> 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" /> 
-  <style> 
+  <meta charset="utf-8" /> 
+  <title>Ramallah Waste Containers</title>   
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />   
+  <style>   
     body {
       margin: 0;
       height: 100%;
@@ -16,7 +16,6 @@
       top: 0;
       bottom: 0;
     }
-    /* Styling the floating information box */
     .floating-info {
       position: absolute;
       background-color: white;
@@ -24,9 +23,8 @@
       border: 1px solid #ccc;
       border-radius: 5px;
       z-index: 1000;
-      display: none; /* Hidden by default */
+      display: none;
     }
-    /* Styling for the side note */
     .side-note {
       position: absolute;
       bottom: 10px;
@@ -43,7 +41,7 @@
 </head>
 <body>
   <div id="map"></div>
-  <div class="floating-info" id="infoBox"></div> <!-- Floating information box -->
+  <div class="floating-info" id="infoBox"></div>
   <div class="side-note">
     <h4>ملاحظات:</h4>
     <ul>
@@ -52,6 +50,7 @@
       <li>2- تعريف الطبقات بشكل عالمي لتسهيل التحكم فيها.</li>
       <li>3- إضافة عنصر التحكم بين الطبقات <strong>layer control</strong> </li>
       <li>4- تخصيص لغة <strong>CSS</strong> للملاحظة ولتثبيتها على الجانب باستخدام <code>position: absolute;</code>.</li>
+      <li>5- تم استبدال شكل الحاويات المدور بالمربع (استبدال <code>L.circleMarker</code> بـ <code>L.divIcon</code>)</li>
     </ul>
   </div>
   <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
@@ -71,7 +70,6 @@
       maxZoom: 20
     }).addTo(map);
 
-    // Function to get color based on the "NAME_ENGLI" field
     function getColor(name) {
       switch (name) {
         case "Zone1": return "red";
@@ -82,11 +80,9 @@
       }
     }
 
-    // Define the layers globally so they can be added to the layer control
     let zonesLayer;
     let wasteContainersLayer;
 
-    // Load and style the zones GeoJSON with dynamic colors and popups
     $.getJSON("RamallahZones.json", function(RZ) {
       zonesLayer = L.geoJson(RZ, {
         style: function(feature) {
@@ -112,21 +108,16 @@
         }
       }).addTo(map);
 
-      // Add the layer to the control
       layerControl.addOverlay(zonesLayer, "Zones");
     });
 
-    // Load and style the waste containers GeoJSON
     $.getJSON("wasteContainer.json", function(WC) {
       wasteContainersLayer = L.geoJson(WC, {
         pointToLayer: function(feature, latlng) {
-          return L.circleMarker(latlng, {
-            radius: 5,
-            fillColor: "orange",
-            color: "orange",
-            weight: 1,
-            opacity: 1,
-            fillOpacity: 0.8
+          return L.divIcon({
+            className: 'square-icon',
+            html: '<div style="width: 15px; height: 15px; background-color: orange;"></div>',
+            iconSize: [15, 15]
           });
         },
         onEachFeature: function(feature, layer) {
@@ -137,13 +128,11 @@
         }
       }).addTo(map);
 
-      // Add the layer to the control
       layerControl.addOverlay(wasteContainersLayer, "Waste Containers");
     });
 
-    // Create the layer control and add it to the map
-    const layerControl = L.control.layers({}, {}).addTo(map);
-  </script>
-</body>
+    const layerControl = L.control.layers({}, {}).addTo(map); 
+  </script> 
+</body> 
 </html>
 
