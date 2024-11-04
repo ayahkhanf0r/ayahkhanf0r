@@ -1,32 +1,38 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <title>Ramallah Waste Containers</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
-
   <style>
     body {
-      margin: 0px;
+      margin: 0;
       height: 100%;
       width: 100%;
     }
-
     #map {
       position: absolute;
       width: 100%;
-      top: 0px;
+      top: 0;
       bottom: 0;
+    }
+    /* Styling the floating information box */
+    .floating-info {
+      position: absolute;
+      background-color: white;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      z-index: 1000;
+      display: none; /* Hidden by default */
     }
   </style>
 </head>
-
 <body>
   <div id="map"></div>
+  <div class="floating-info" id="infoBox"></div> <!-- Floating information box -->
   <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-
   <script>
     const mapOptions = {
       zoomSnap: 0.5,
@@ -49,7 +55,6 @@
         case "Zone2": return "blue";
         case "Zone3": return "green";
         case "Zone4": return "purple";
-        // Add more cases as needed
         default: return "yellow";
       }
     }
@@ -67,38 +72,41 @@
           };
         },
         onEachFeature: function(feature, layer) {
-          // Bind a popup with the name of the zone
-          layer.bindPopup("Zone: " + feature.properties.NAME_ENGLI);
-
-          // Add a click event to display an alert with additional information
           layer.on('click', function(e) {
-            alert("Zone: " + feature.properties.NAME_ENGLI + "\nMAIL_CODE: " + feature.properties.MAIL_CODE);
+            const infoBox = document.getElementById('infoBox');
+            infoBox.style.display = 'block';
+            infoBox.style.left = e.containerPoint.x + 'px';
+            infoBox.style.top = e.containerPoint.y + 'px';
+            infoBox.innerHTML = `
+              <strong>Zone:</strong> ${feature.properties.NAME_ENGLI} <br>
+              <strong>MAIL_CODE:</strong> ${feature.properties.MAIL_CODE}
+            `;
           });
         }
       }).addTo(map);
     });
 
     // Load and style the waste containers GeoJSON
- $.getJSON("wasteContainer.json", function(WC) {
-  L.geoJson(WC, {
-    pointToLayer: function(feature, latlng) {
-      return L.circleMarker(latlng, {
-        radius: 5,
-        fillColor: "orange",
-        color: "orange",
-        weight: 1,
-        opacity: 1,
-        fillOpacity: 0.8
-      });
-    },
-    onEachFeature: function(feature, layer) {
-      layer.bindPopup(`
-        <strong>Material:</strong> ${feature.properties.TYPE_OF_WA} <br>
-        <strong>Size:</strong> ${feature.properties.SIZE_OF_TH} <br>
-      `);
-    }
-  }).addTo(map);
-});
+    $.getJSON("wasteContainer.json", function(WC) {
+      L.geoJson(WC, {
+        pointToLayer: function(feature, latlng) {
+          return L.circleMarker(latlng, {
+            radius: 5,
+            fillColor: "orange",
+            color: "orange",
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.8
+          });
+        },
+        onEachFeature: function(feature, layer) {
+          layer.bindPopup(`
+            <strong>Material:</strong> ${feature.properties.TYPE_OF_WA} <br>
+            <strong>Size:</strong> ${feature.properties.SIZE_OF_TH} <br>
+          `);
+        }
+      }).addTo(map);
+    });
 
     // Add layers to map with control options
     const baseLayers = {};
@@ -107,12 +115,10 @@
       "Waste Containers": wasteContainersLayer
     };
 
-    // Add layer control to the map
     L.control.layers(baseLayers, overlays).addTo(map);
-   // Add both layers to the map by default
     zonesLayer.addTo(map);
     wasteContainersLayer.addTo(map);
-
   </script>
 </body>
 </html>
+
