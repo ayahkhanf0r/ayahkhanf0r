@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>Ramallah Waste Containers</title>
+<head> 
+  <meta charset="utf-8" /> 
+  <title>Ramallah Waste Containers</title> 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
   <style>
     body { margin: 0; height: 100%; width: 100%; }
@@ -152,26 +152,36 @@
     const legend = L.control({ position: 'topright' });
     legend.onAdd = function () {
       const div = L.DomUtil.create('div', 'info legend');
-      const zoneColors = {
-        "Zone1": getRandomColor(),
-        "Zone2": getRandomColor(),
-        "Zone3": getRandomColor(),
-        "Zone4": getRandomColor()
-      };
-      const wasteTypes = {
-        'Plastic': getRandomColor(),
-        'Organic': getRandomColor(),
-        'Metal': getRandomColor(),
-        'Other': getRandomColor()
-      };
-      div.innerHTML += '<strong>Zones</strong><br>';
-      for (const zone in zoneColors) {
-        div.innerHTML += `<i style="background:${zoneColors[zone]}"></i> ${zone}<br>`;
-      }
-      div.innerHTML += '<strong>Waste Types</strong><br>';
-      for (const waste in wasteTypes) {
-        div.innerHTML += `<i style="background:${wasteTypes[waste]}"></i> ${waste}<br>`;
-      }
+      const zoneColors = {};
+
+      // Loop through each zone and assign a random color based on NAME_ENGLI
+      $.getJSON("RamallahZones.json", function(RZ) {
+        RZ.features.forEach(function(feature) {
+          const zoneName = feature.properties.NAME_ENGLI; // Use NAME_ENGLI for zone names
+          if (!zoneColors[zoneName]) {
+            zoneColors[zoneName] = getRandomColor(); // Assign random color
+          }
+        });
+
+        // Add the Zone category to the legend dynamically
+        div.innerHTML += '<strong>Zones</strong><br>';
+        for (const zone in zoneColors) {
+          div.innerHTML += `<i style="background:${zoneColors[zone]}"></i> ${zone}<br>`;
+        }
+
+        // Add waste types to the legend (you can keep this as-is or modify it if needed)
+        const wasteTypes = {
+          'Plastic': getRandomColor(),
+          'Organic': getRandomColor(),
+          'Metal': getRandomColor(),
+          'Other': getRandomColor()
+        };
+        div.innerHTML += '<strong>Waste Types</strong><br>';
+        for (const waste in wasteTypes) {
+          div.innerHTML += `<i style="background:${wasteTypes[waste]}"></i> ${waste}<br>`;
+        }
+      });
+
       return div;
     };
     legend.addTo(map);
@@ -203,3 +213,4 @@
   </script>
 </body> 
 </html>
+
