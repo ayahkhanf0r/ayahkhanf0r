@@ -9,8 +9,6 @@
     #map { position: absolute; width: 100%; top: 0; bottom: 0; }
     .floating-info { position: absolute; background-color: white; padding: 10px; border: 1px solid #ccc; border-radius: 5px; z-index: 1000; display: none; }
     .side-note { position: absolute; bottom: 10px; right: 10px; background-color: rgba(255, 0, 0, 0.8); padding: 15px; border: 1px solid #ddd; border-radius: 8px; z-index: 1000; font-family: Arial, sans-serif; font-size: 14px; }
-    
-    /* Custom styles for control buttons */
     .layer-toggle-buttons {
       position: absolute;
       top: 10px;
@@ -28,8 +26,6 @@
       font-size: 16px;
       line-height: 1;
     }
-
-    /* CSS for the legend */
     .info.legend {
       background-color: green;
       color: white;
@@ -82,7 +78,7 @@
     }).addTo(map);
 
     let zonesLayer, wasteContainersLayer;
-    let routesLayer = L.layerGroup(); // Store all routes in this layer group
+    let routesLayer = L.layerGroup().addTo(map); // Initialize and add routes layer to map
 
     const events = [{ name: "Festival", location: [31.905, 35.203], impactRadius: 0.01, wasteIncrease: 0.2 }];
     const weatherImpact = { "hot": 0.3, "rainy": 0.2 };
@@ -118,10 +114,13 @@
           return L.circleMarker(latlng, { radius: 5, fillColor: color, color: color, weight: 1, opacity: 1, fillOpacity: 0.8 });
         }
       }).addTo(map);
+      
+      // Calculate route after containers are added
+      calculateOptimalRoute(wasteContainersLayer.getLayers());
     });
 
     function calculateOptimalRoute(containers) {
-      routesLayer.clearLayers();
+      routesLayer.clearLayers(); // Clear previous routes
       for (let i = 0; i < containers.length - 1; i++) {
         L.polyline(
           [containers[i].getLatLng(), containers[i + 1].getLatLng()],
