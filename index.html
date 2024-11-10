@@ -7,37 +7,6 @@
   <style>
     body { margin: 0; height: 100%; width: 100%; }
     #map { position: absolute; width: 100%; top: 0; bottom: 0; }
-    .floating-info { position: absolute; background-color: white; padding: 10px; border: 1px solid #ccc; border-radius: 5px; z-index: 1000; display: none; }
-    .side-note { 
-      position: absolute; 
-      bottom: 10px; 
-      right: 10px; 
-      background-color: rgba(255, 0, 0, 0.8); 
-      padding: 5px; 
-      border: 1px solid #ddd; 
-      border-radius: 8px; 
-      z-index: 1000; 
-      font-family: Arial, sans-serif; 
-      font-size: 10px;
-    }
-    .layer-toggle-buttons {
-      position: absolute;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 1000;
-      display: flex;
-      gap: 10px;
-    }
-    .layer-toggle-buttons button {
-      padding: 8px;
-      background-color: #fff;
-      border: 1px solid #ccc;
-      border-radius: 50%;
-      cursor: pointer;
-      font-size: 14px;
-      line-height: 1;
-    }
     .info.legend {
       background-color: green;
       color: white;
@@ -57,20 +26,6 @@
 </head>
 <body>
   <div id="map"></div>
-  <div class="floating-info" id="infoBox"></div>
-  <div class="side-note">
-    <h4>NOTES!:</h4>
-    <ul>
-      <li>**Note (the final code has been customized by me using new functions):</li>
-      <li>10 advanced features included for waste management intelligence.</li>
-    </ul>
-  </div>
-
-  <div class="layer-toggle-buttons">
-    <button id="toggleZones">📍</button>
-    <button id="toggleContainers">🗑️</button>
-    <button id="toggleRoutes">🛤️</button>
-  </div>
 
   <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
@@ -89,7 +44,6 @@
     }).addTo(map);
 
     let zonesLayer, wasteContainersLayer;
-    let routesLayer = L.layerGroup().addTo(map);
 
     function getRandomColor() {
       const letters = '0123456789ABCDEF';
@@ -109,67 +63,548 @@
       return colors;
     }
 
+    // تحميل بيانات RamallahZones وتطبيق الألوان حسب الفئات في NAME_ENGLI
     $.getJSON("RamallahZones.json", function(RZ) {
-      const zoneColors = assignRandomColors(RZ, "NAME");
+      const zoneColors = assignRandomColors(RZ, "NAME_ENGLI");
       zonesLayer = L.geoJson(RZ, {
         style: function(feature) {
           return {
-            fillColor: zoneColors[feature.properties.NAME],
+            fillColor: zoneColors[feature.properties.NAME_ENGLI],
             fillOpacity: 0.8,
-            color: zoneColors[feature.properties.NAME],
+            color: zoneColors[feature.properties.NAME_ENGLI],
             weight: 3.0,
             opacity: 1.0
           };
+        },
+        onEachFeature: function(feature, layer) {
+          layer.bindPopup("Zone: " + feature.properties.NAME_ENGLI);
         }
       }).addTo(map);
     });
 
+    // تحميل بيانات wasteContainer وتطبيق الألوان حسب الفئات في TYPE_OF_WA
     $.getJSON("wasteContainer.json", function(WC) {
       const wasteColors = assignRandomColors(WC, "TYPE_OF_WA");
       wasteContainersLayer = L.geoJson(WC, {
         pointToLayer: function(feature, latlng) {
           const color = wasteColors[feature.properties.TYPE_OF_WA];
           return L.circleMarker(latlng, { radius: 8, fillColor: color, color: color, weight: 3, opacity: 1, fillOpacity: 0.9 });
+        },
+        onEachFeature: function(feature, layer) {
+          layer.bindPopup("Container Type: " + feature.properties.TYPE_OF_WA);
         }
       }).addTo(map);
-
-      calculateOptimalRoute(wasteContainersLayer.getLayers());
     });
 
-    function calculateOptimalRoute(containers) {
-      routesLayer.clearLayers();
-      for (let i = 0; i < containers.length - 1; i++) {
-        L.polyline(
-          [containers[i].getLatLng(), containers[i + 1].getLatLng()],
-          { color: 'blue', weight: 3, opacity: 0.8 }
-        ).addTo(routesLayer).bindPopup("Suggested collection path");
-      }
-    }
+    // إنشاء خريطة توضيحية (Legend)
+    const legend = L.control({ position: 'topright' });
+    legend.onAdd = function () {
+      const div = L.DomUtil.create('div', 'info legend');
 
-    document.getElementById('toggleZones').addEventListener('click', () => {
-      if (map.hasLayer(zonesLayer)) {
-        map.removeLayer(zonesLayer);
-      } else {
-        map.addLayer(zonesLayer);
+      // ألوان مناطق RamallahZones
+      div.innerHTML += '<strong>Zones</strong><br>';
+      for (const zone in zoneColors) {
+        div.innerHTML += `<i style="background:${zoneColors[zone]}"></i> ${zone}<br>`;
       }
-    });
 
-    document.getElementById('toggleContainers').addEventListener('click', () => {
-      if (map.hasLayer(wasteContainersLayer)) {
-        map.removeLayer(wasteContainersLayer);
-      } else {
-        map.addLayer(wasteContainersLayer);
+      // ألوان أنواع الحاويات wasteContainer
+      div.innerHTML += '<strong>Waste Container Types</strong><br>';
+      for (const type in wasteColors) {
+        div.innerHTML += `<i style="background:${wasteColors[type]}"></i> ${type}<br>`;
       }
-    });
 
-    document.getElementById('toggleRoutes').addEventListener('click', () => {
-      if (map.hasLayer(routesLayer)) {
-        map.removeLayer(routesLayer);
-      } else {
-        map.addLayer(routesLayer);
-      }
-    });
+      return div;
+    };
+    legend.addTo(map);
+
   </script>
 </body> 
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Ramallah Waste Containers</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
+  <style>
+    body { margin: 0; height: 100%; width: 100%; }
+    #map { position: absolute; width: 100%; top: 0; bottom: 0; }
+    .info.legend {
+      background-color: green;
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      line-height: 1.5;
+      box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    .info.legend i {
+      width: 18px;
+      height: 18px;
+      float: left;
+      margin-right: 8px;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
 
+  <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script>
+    const mapOptions = {
+      zoomSnap: 0.5,
+      center: [31.9045, 35.2045],
+      zoom: 19,
+    };
+    const map = L.map("map", mapOptions);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap & CARTO',
+      subdomains: 'abcd',
+      maxZoom: 20
+    }).addTo(map);
+
+    let zonesLayer, wasteContainersLayer;
+
+    function getRandomColor() {
+      const letters = '0123456789ABCDEF';
+      let color = '#';
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
+    }
+
+    function assignRandomColors(data, field) {
+      const categories = [...new Set(data.features.map(feature => feature.properties[field]))];
+      const colors = {};
+      categories.forEach(category => {
+        colors[category] = getRandomColor();
+      });
+      return colors;
+    }
+
+    // تحميل بيانات RamallahZones وتطبيق الألوان حسب الفئات في NAME_ENGLI
+    $.getJSON("RamallahZones.json", function(RZ) {
+      const zoneColors = assignRandomColors(RZ, "NAME_ENGLI");
+      zonesLayer = L.geoJson(RZ, {
+        style: function(feature) {
+          return {
+            fillColor: zoneColors[feature.properties.NAME_ENGLI],
+            fillOpacity: 0.8,
+            color: zoneColors[feature.properties.NAME_ENGLI],
+            weight: 3.0,
+            opacity: 1.0
+          };
+        },
+        onEachFeature: function(feature, layer) {
+          layer.bindPopup("Zone: " + feature.properties.NAME_ENGLI);
+        }
+      }).addTo(map);
+    });
+
+    // تحميل بيانات wasteContainer وتطبيق الألوان حسب الفئات في TYPE_OF_WA
+    $.getJSON("wasteContainer.json", function(WC) {
+      const wasteColors = assignRandomColors(WC, "TYPE_OF_WA");
+      wasteContainersLayer = L.geoJson(WC, {
+        pointToLayer: function(feature, latlng) {
+          const color = wasteColors[feature.properties.TYPE_OF_WA];
+          return L.circleMarker(latlng, { radius: 8, fillColor: color, color: color, weight: 3, opacity: 1, fillOpacity: 0.9 });
+        },
+        onEachFeature: function(feature, layer) {
+          layer.bindPopup("Container Type: " + feature.properties.TYPE_OF_WA);
+        }
+      }).addTo(map);
+    });
+
+    // إنشاء خريطة توضيحية (Legend)
+    const legend = L.control({ position: 'topright' });
+    legend.onAdd = function () {
+      const div = L.DomUtil.create('div', 'info legend');
+
+      // ألوان مناطق RamallahZones
+      div.innerHTML += '<strong>Zones</strong><br>';
+      for (const zone in zoneColors) {
+        div.innerHTML += `<i style="background:${zoneColors[zone]}"></i> ${zone}<br>`;
+      }
+
+      // ألوان أنواع الحاويات wasteContainer
+      div.innerHTML += '<strong>Waste Container Types</strong><br>';
+      for (const type in wasteColors) {
+        div.innerHTML += `<i style="background:${wasteColors[type]}"></i> ${type}<br>`;
+      }
+
+      return div;
+    };
+    legend.addTo(map);
+
+  </script>
+</body> 
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Ramallah Waste Containers</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
+  <style>
+    body { margin: 0; height: 100%; width: 100%; }
+    #map { position: absolute; width: 100%; top: 0; bottom: 0; }
+    .info.legend {
+      background-color: green;
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      line-height: 1.5;
+      box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    .info.legend i {
+      width: 18px;
+      height: 18px;
+      float: left;
+      margin-right: 8px;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script>
+    const mapOptions = {
+      zoomSnap: 0.5,
+      center: [31.9045, 35.2045],
+      zoom: 19,
+    };
+    const map = L.map("map", mapOptions);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap & CARTO',
+      subdomains: 'abcd',
+      maxZoom: 20
+    }).addTo(map);
+
+    let zonesLayer, wasteContainersLayer;
+
+    function getRandomColor() {
+      const letters = '0123456789ABCDEF';
+      let color = '#';
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
+    }
+
+    function assignRandomColors(data, field) {
+      const categories = [...new Set(data.features.map(feature => feature.properties[field]))];
+      const colors = {};
+      categories.forEach(category => {
+        colors[category] = getRandomColor();
+      });
+      return colors;
+    }
+
+    // تحميل بيانات RamallahZones وتطبيق الألوان حسب الفئات في NAME_ENGLI
+    $.getJSON("RamallahZones.json", function(RZ) {
+      const zoneColors = assignRandomColors(RZ, "NAME_ENGLI");
+      zonesLayer = L.geoJson(RZ, {
+        style: function(feature) {
+          return {
+            fillColor: zoneColors[feature.properties.NAME_ENGLI],
+            fillOpacity: 0.8,
+            color: zoneColors[feature.properties.NAME_ENGLI],
+            weight: 3.0,
+            opacity: 1.0
+          };
+        },
+        onEachFeature: function(feature, layer) {
+          layer.bindPopup("Zone: " + feature.properties.NAME_ENGLI);
+        }
+      }).addTo(map);
+    });
+
+    // تحميل بيانات wasteContainer وتطبيق الألوان حسب الفئات في TYPE_OF_WA
+    $.getJSON("wasteContainer.json", function(WC) {
+      const wasteColors = assignRandomColors(WC, "TYPE_OF_WA");
+      wasteContainersLayer = L.geoJson(WC, {
+        pointToLayer: function(feature, latlng) {
+          const color = wasteColors[feature.properties.TYPE_OF_WA];
+          return L.circleMarker(latlng, { radius: 8, fillColor: color, color: color, weight: 3, opacity: 1, fillOpacity: 0.9 });
+        },
+        onEachFeature: function(feature, layer) {
+          layer.bindPopup("Container Type: " + feature.properties.TYPE_OF_WA);
+        }
+      }).addTo(map);
+    });
+
+    // إنشاء خريطة توضيحية (Legend)
+    const legend = L.control({ position: 'topright' });
+    legend.onAdd = function () {
+      const div = L.DomUtil.create('div', 'info legend');
+
+      // ألوان مناطق RamallahZones
+      div.innerHTML += '<strong>Zones</strong><br>';
+      for (const zone in zoneColors) {
+        div.innerHTML += `<i style="background:${zoneColors[zone]}"></i> ${zone}<br>`;
+      }
+
+      // ألوان أنواع الحاويات wasteContainer
+      div.innerHTML += '<strong>Waste Container Types</strong><br>';
+      for (const type in wasteColors) {
+        div.innerHTML += `<i style="background:${wasteColors[type]}"></i> ${type}<br>`;
+      }
+
+      return div;
+    };
+    legend.addTo(map);
+
+  </script>
+</body> 
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Ramallah Waste Containers</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
+  <style>
+    body { margin: 0; height: 100%; width: 100%; }
+    #map { position: absolute; width: 100%; top: 0; bottom: 0; }
+    .info.legend {
+      background-color: green;
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      line-height: 1.5;
+      box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    .info.legend i {
+      width: 18px;
+      height: 18px;
+      float: left;
+      margin-right: 8px;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script>
+    const mapOptions = {
+      zoomSnap: 0.5,
+      center: [31.9045, 35.2045],
+      zoom: 19,
+    };
+    const map = L.map("map", mapOptions);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap & CARTO',
+      subdomains: 'abcd',
+      maxZoom: 20
+    }).addTo(map);
+
+    let zonesLayer, wasteContainersLayer;
+
+    function getRandomColor() {
+      const letters = '0123456789ABCDEF';
+      let color = '#';
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
+    }
+
+    function assignRandomColors(data, field) {
+      const categories = [...new Set(data.features.map(feature => feature.properties[field]))];
+      const colors = {};
+      categories.forEach(category => {
+        colors[category] = getRandomColor();
+      });
+      return colors;
+    }
+
+    // تحميل بيانات RamallahZones وتطبيق الألوان حسب الفئات في NAME_ENGLI
+    $.getJSON("RamallahZones.json", function(RZ) {
+      const zoneColors = assignRandomColors(RZ, "NAME_ENGLI");
+      zonesLayer = L.geoJson(RZ, {
+        style: function(feature) {
+          return {
+            fillColor: zoneColors[feature.properties.NAME_ENGLI],
+            fillOpacity: 0.8,
+            color: zoneColors[feature.properties.NAME_ENGLI],
+            weight: 3.0,
+            opacity: 1.0
+          };
+        },
+        onEachFeature: function(feature, layer) {
+          layer.bindPopup("Zone: " + feature.properties.NAME_ENGLI);
+        }
+      }).addTo(map);
+    });
+
+    // تحميل بيانات wasteContainer وتطبيق الألوان حسب الفئات في TYPE_OF_WA
+    $.getJSON("wasteContainer.json", function(WC) {
+      const wasteColors = assignRandomColors(WC, "TYPE_OF_WA");
+      wasteContainersLayer = L.geoJson(WC, {
+        pointToLayer: function(feature, latlng) {
+          const color = wasteColors[feature.properties.TYPE_OF_WA];
+          return L.circleMarker(latlng, { radius: 8, fillColor: color, color: color, weight: 3, opacity: 1, fillOpacity: 0.9 });
+        },
+        onEachFeature: function(feature, layer) {
+          layer.bindPopup("Container Type: " + feature.properties.TYPE_OF_WA);
+        }
+      }).addTo(map);
+    });
+
+    // إنشاء خريطة توضيحية (Legend)
+    const legend = L.control({ position: 'topright' });
+    legend.onAdd = function () {
+      const div = L.DomUtil.create('div', 'info legend');
+
+      // ألوان مناطق RamallahZones
+      div.innerHTML += '<strong>Zones</strong><br>';
+      for (const zone in zoneColors) {
+        div.innerHTML += `<i style="background:${zoneColors[zone]}"></i> ${zone}<br>`;
+      }
+
+      // ألوان أنواع الحاويات wasteContainer
+      div.innerHTML += '<strong>Waste Container Types</strong><br>';
+      for (const type in wasteColors) {
+        div.innerHTML += `<i style="background:${wasteColors[type]}"></i> ${type}<br>`;
+      }
+
+      return div;
+    };
+    legend.addTo(map);
+
+  </script>
+</body> 
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Ramallah Waste Containers</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
+  <style>
+    body { margin: 0; height: 100%; width: 100%; }
+    #map { position: absolute; width: 100%; top: 0; bottom: 0; }
+    .info.legend {
+      background-color: green;
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      line-height: 1.5;
+      box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    .info.legend i {
+      width: 18px;
+      height: 18px;
+      float: left;
+      margin-right: 8px;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script>
+    const mapOptions = {
+      zoomSnap: 0.5,
+      center: [31.9045, 35.2045],
+      zoom: 19,
+    };
+    const map = L.map("map", mapOptions);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap & CARTO',
+      subdomains: 'abcd',
+      maxZoom: 20
+    }).addTo(map);
+
+    let zonesLayer, wasteContainersLayer;
+
+    function getRandomColor() {
+      const letters = '0123456789ABCDEF';
+      let color = '#';
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
+    }
+
+    function assignRandomColors(data, field) {
+      const categories = [...new Set(data.features.map(feature => feature.properties[field]))];
+      const colors = {};
+      categories.forEach(category => {
+        colors[category] = getRandomColor();
+      });
+      return colors;
+    }
+
+    // تحميل بيانات RamallahZones وتطبيق الألوان حسب الفئات في NAME_ENGLI
+    $.getJSON("RamallahZones.json", function(RZ) {
+      const zoneColors = assignRandomColors(RZ, "NAME_ENGLI");
+      zonesLayer = L.geoJson(RZ, {
+        style: function(feature) {
+          return {
+            fillColor: zoneColors[feature.properties.NAME_ENGLI],
+            fillOpacity: 0.8,
+            color: zoneColors[feature.properties.NAME_ENGLI],
+            weight: 3.0,
+            opacity: 1.0
+          };
+        },
+        onEachFeature: function(feature, layer) {
+          layer.bindPopup("Zone: " + feature.properties.NAME_ENGLI);
+        }
+      }).addTo(map);
+    });
+
+    // تحميل بيانات wasteContainer وتطبيق الألوان حسب الفئات في TYPE_OF_WA
+    $.getJSON("wasteContainer.json", function(WC) {
+      const wasteColors = assignRandomColors(WC, "TYPE_OF_WA");
+      wasteContainersLayer = L.geoJson(WC, {
+        pointToLayer: function(feature, latlng) {
+          const color = wasteColors[feature.properties.TYPE_OF_WA];
+          return L.circleMarker(latlng, { radius: 8, fillColor: color, color: color, weight: 3, opacity: 1, fillOpacity: 0.9 });
+        },
+        onEachFeature: function(feature, layer) {
+          layer.bindPopup("Container Type: " + feature.properties.TYPE_OF_WA);
+        }
+      }).addTo(map);
+    });
+
+    // إنشاء خريطة توضيحية (Legend)
+    const legend = L.control({ position: 'topright' });
+    legend.onAdd = function () {
+      const div = L.DomUtil.create('div', 'info legend');
+
+      // ألوان مناطق RamallahZones
+      div.innerHTML += '<strong>Zones</strong><br>';
+      for (const zone in zoneColors) {
+        div.innerHTML += `<i style="background:${zoneColors[zone]}"></i> ${zone}<br>`;
+      }
+
+      // ألوان أنواع الحاويات wasteContainer
+      div.innerHTML += '<strong>Waste Container Types</strong><br>';
+      for (const type in wasteColors) {
+        div.innerHTML += `<i style="background:${wasteColors[type]}"></i> ${type}<br>`;
+      }
+
+      return div;
+    };
+    legend.addTo(map);
+
+  </script>
+</body> 
+</html>
