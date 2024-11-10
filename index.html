@@ -11,15 +11,22 @@
     .side-note { position: absolute; bottom: 10px; right: 10px; background-color: rgba(255, 0, 0, 0.8); padding: 15px; border: 1px solid #ddd; border-radius: 8px; z-index: 1000; font-family: Arial, sans-serif; font-size: 14px; }
     
     /* Custom styles for control buttons */
-    .layer-toggle-buttons { position: absolute; top: 10px; left: 10px; z-index: 1000; }
+    .layer-toggle-buttons {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      display: flex;
+      gap: 10px;
+    }
     .layer-toggle-buttons button {
-      display: block;
-      margin-bottom: 5px;
-      padding: 10px 15px;
+      padding: 10px;
       background-color: #fff;
       border: 1px solid #ccc;
-      border-radius: 5px;
+      border-radius: 50%;
       cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
     }
 
     /* CSS for the legend */
@@ -51,11 +58,11 @@
     </ul>
   </div>
 
-  <!-- Layer control buttons -->
+  <!-- Layer control buttons with symbols -->
   <div class="layer-toggle-buttons">
-    <button id="toggleZones">Toggle Zones</button>
-    <button id="toggleContainers">Toggle Waste Containers</button>
-    <button id="toggleRoutes">Toggle Routes</button>
+    <button id="toggleZones">📍</button> <!-- Pin symbol for Zones -->
+    <button id="toggleContainers">🗑️</button> <!-- Trash can symbol for Waste Containers -->
+    <button id="toggleRoutes">🛤️</button> <!-- Rail track symbol for Routes -->
   </div>
 
   <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
@@ -178,4 +185,3 @@
   </script>
 </body>
 </html>
-
