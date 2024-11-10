@@ -18,24 +18,24 @@
       border-radius: 8px; 
       z-index: 1000; 
       font-family: Arial, sans-serif; 
-      font-size: 10px; /* Reduced font size */
+      font-size: 10px;
     }
     .layer-toggle-buttons {
       position: absolute;
       top: 10px;
-      left: 50%; /* Center the buttons */
-      transform: translateX(-50%); /* Adjust for centering */
+      left: 50%;
+      transform: translateX(-50%);
       z-index: 1000;
       display: flex;
       gap: 10px;
     }
     .layer-toggle-buttons button {
-      padding: 8px; /* Reduced padding */
+      padding: 8px;
       background-color: #fff;
       border: 1px solid #ccc;
       border-radius: 50%;
       cursor: pointer;
-      font-size: 14px; /* Reduced font size */
+      font-size: 14px;
       line-height: 1;
     }
     .info.legend {
@@ -57,7 +57,7 @@
 </head>
 <body>
   <div id="map"></div>
-  <div class="floating-info" id="infoBox"></div> <!-- Floating information box -->
+  <div class="floating-info" id="infoBox"></div>
   <div class="side-note">
     <h4>NOTES!:</h4>
     <ul>
@@ -66,11 +66,10 @@
     </ul>
   </div>
 
-  <!-- Layer control buttons with symbols -->
   <div class="layer-toggle-buttons">
-    <button id="toggleZones">📍</button> <!-- Pin symbol for Zones -->
-    <button id="toggleContainers">🗑️</button> <!-- Trash can symbol for Waste Containers -->
-    <button id="toggleRoutes">🛤️</button> <!-- Rail track symbol for Routes -->
+    <button id="toggleZones">📍</button>
+    <button id="toggleContainers">🗑️</button>
+    <button id="toggleRoutes">🛤️</button>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
@@ -90,10 +89,7 @@
     }).addTo(map);
 
     let zonesLayer, wasteContainersLayer;
-    let routesLayer = L.layerGroup().addTo(map); // Initialize and add routes layer to map
-
-    const events = [{ name: "Festival", location: [31.905, 35.203], impactRadius: 0.01, wasteIncrease: 0.2 }];
-    const weatherImpact = { "hot": 0.3, "rainy": 0.2 };
+    let routesLayer = L.layerGroup().addTo(map);
 
     function getRandomColor() {
       const letters = '0123456789ABCDEF';
@@ -104,22 +100,24 @@
       return color;
     }
 
-    function getWasteContainerColor(type) {
-      return getRandomColor(); // Assign random color to waste containers
-    }
-
-    function getZoneColor(name) {
-      return getRandomColor(); // Assign random color to zones
+    function assignRandomColors(data, field) {
+      const categories = [...new Set(data.features.map(feature => feature.properties[field]))];
+      const colors = {};
+      categories.forEach(category => {
+        colors[category] = getRandomColor();
+      });
+      return colors;
     }
 
     $.getJSON("RamallahZones.json", function(RZ) {
+      const zoneColors = assignRandomColors(RZ, "NAME");
       zonesLayer = L.geoJson(RZ, {
         style: function(feature) {
           return {
-            fillColor: getZoneColor(feature.properties.NAME),
-            fillOpacity: 0.8,  // Increased opacity for better visibility
-            color: getZoneColor(feature.properties.NAME),
-            weight: 3.0,  // Thicker boundary for visibility
+            fillColor: zoneColors[feature.properties.NAME],
+            fillOpacity: 0.8,
+            color: zoneColors[feature.properties.NAME],
+            weight: 3.0,
             opacity: 1.0
           };
         }
@@ -127,19 +125,19 @@
     });
 
     $.getJSON("wasteContainer.json", function(WC) {
+      const wasteColors = assignRandomColors(WC, "TYPE_OF_WA");
       wasteContainersLayer = L.geoJson(WC, {
         pointToLayer: function(feature, latlng) {
-          const color = getWasteContainerColor(feature.properties.TYPE_OF_WA);
+          const color = wasteColors[feature.properties.TYPE_OF_WA];
           return L.circleMarker(latlng, { radius: 8, fillColor: color, color: color, weight: 3, opacity: 1, fillOpacity: 0.9 });
         }
       }).addTo(map);
 
-      // Calculate route after containers are added
       calculateOptimalRoute(wasteContainersLayer.getLayers());
     });
 
     function calculateOptimalRoute(containers) {
-      routesLayer.clearLayers(); // Clear previous routes
+      routesLayer.clearLayers();
       for (let i = 0; i < containers.length - 1; i++) {
         L.polyline(
           [containers[i].getLatLng(), containers[i + 1].getLatLng()],
@@ -148,35 +146,6 @@
       }
     }
 
-    // Add the legend to the map
-    const legend = L.control({ position: 'topright' });
-    legend.onAdd = function () {
-      const div = L.DomUtil.create('div', 'info legend');
-      const zoneColors = {
-        "Zone1": getRandomColor(),
-        "Zone2": getRandomColor(),
-        "Zone3": getRandomColor(),
-        "Zone4": getRandomColor()
-      };
-      const wasteTypes = {
-        'Plastic': getRandomColor(),
-        'Organic': getRandomColor(),
-        'Metal': getRandomColor(),
-        'Other': getRandomColor()
-      };
-      div.innerHTML += '<strong>Zones</strong><br>';
-      for (const zone in zoneColors) {
-        div.innerHTML += `<i style="background:${zoneColors[zone]}"></i> ${zone}<br>`;
-      }
-      div.innerHTML += '<strong>Waste Types</strong><br>';
-      for (const waste in wasteTypes) {
-        div.innerHTML += `<i style="background:${wasteTypes[waste]}"></i> ${waste}<br>`;
-      }
-      return div;
-    };
-    legend.addTo(map);
-
-    // Toggle layer visibility with buttons
     document.getElementById('toggleZones').addEventListener('click', () => {
       if (map.hasLayer(zonesLayer)) {
         map.removeLayer(zonesLayer);
@@ -203,3 +172,4 @@
   </script>
 </body> 
 </html>
+
