@@ -9,7 +9,6 @@
     #map { flex: 1; position: relative; }
     .control-panel { background-color: #f8f9fa; padding: 10px; display: flex; gap: 10px; justify-content: center; border-bottom: 1px solid #ccc; }
     .floating-info { position: absolute; background-color: white; padding: 10px; border: 1px solid #ccc; border-radius: 5px; z-index: 1000; display: none; }
-    .side-note { position: absolute; bottom: 10px; right: 10px; background-color: rgba(255, 0, 0, 0.8); padding: 15px; border: 1px solid #ddd; border-radius: 8px; z-index: 1000; font-family: Arial, sans-serif; font-size: 14px; }
   </style>
 </head>
 <body>
@@ -20,7 +19,7 @@
     <button id="toggleOptimalRoute">Toggle Optimal Route</button>
   </div>
   <div id="map"></div>
-  <div class="floating-info" id="infoBox"></div> <!-- Floating information box -->
+  <div class="floating-info" id="infoBox"></div>
   
   <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
@@ -39,110 +38,48 @@
     }).addTo(map);
 
     let zonesLayer, wasteContainersLayer;
-    const events = [{ name: "Festival", location: [31.905, 35.203], impactRadius: 0.01, wasteIncrease: 0.2 }];
-    const weatherImpact = { "hot": 0.3, "rainy": 0.2 };
-
     let showPrediction = false;
     let showNewContainers = false;
     let showRecyclingPoints = false;
     let showOptimalRoute = false;
 
-    function getColor(name) {
-      switch (name) {
-        case "Zone1": return "red";
-        case "Zone2": return "blue";
-        case "Zone3": return "green";
-        case "Zone4": return "purple";
-        default: return "yellow";
-      }
-    }
-
-    function getFillStatus(size) {
-      return Math.random() * size;
-    }
-
-    function checkNearbyEvent(latlng) {
-      for (let event of events) {
-        let distance = map.distance(latlng, event.location) / 1000;
-        if (distance < event.impactRadius) {
-          return event.wasteIncrease;
-        }
-      }
-      return 0;
-    }
-
-    $.getJSON("RamallahZones.json", function(RZ) {
-      zonesLayer = L.geoJson(RZ, {
-        style: function(feature) {
-          return {
-            fillColor: getColor(feature.properties.NAME_ENGLI),
-            fillOpacity: 0.3,
-            color: getColor(feature.properties.NAME_ENGLI),
-            weight: 1.0,
-            opacity: 0.7
-          };
-        },
-        onEachFeature: function(feature, layer) {
-          layer.on('click', function(e) {
-            const infoBox = document.getElementById('infoBox');
-            infoBox.style.display = 'block';
-            infoBox.style.left = (e.containerPoint.x + 15) + 'px';
-            infoBox.style.top = (e.containerPoint.y + 15) + 'px';
-            infoBox.innerHTML = `<strong>Zone:</strong> ${feature.properties.NAME_ENGLI} <br><strong>MAIL_CODE:</strong> ${feature.properties.MAIL_CODE}`;
-          });
-        }
-      }).addTo(map);
-    });
-
-    $.getJSON("wasteContainer.json", function(WC) {
-      wasteContainersLayer = L.geoJson(WC, {
-        pointToLayer: function(feature, latlng) {
-          const eventImpact = checkNearbyEvent(latlng);
-          const isHotDay = true;
-          const impact = isHotDay ? weatherImpact.hot : 0;
-          const fillStatus = getFillStatus(feature.properties.SIZE_OF_TH) * (1 + eventImpact) * (1 + impact);
-          const color = fillStatus > 0.8 * feature.properties.SIZE_OF_TH ? 'red' : 'orange';
-          return L.circleMarker(latlng, { radius: 5, fillColor: color, color: color, weight: 1, opacity: 1, fillOpacity: 0.8 });
-        },
-        onEachFeature: function(feature, layer) {
-          if (showPrediction) {
-            const prediction = predictWastePattern(layer);
-            const wasteType = feature.properties.TYPE_OF_WA;
-            layer.bindPopup(`<strong>Material:</strong> ${wasteType} <br><strong>Size:</strong> ${feature.properties.SIZE_OF_TH} <br><strong>Prediction:</strong> ${prediction}`);
-          }
-          layer.setStyle({ fillColor: setWasteTypeColor(feature.properties.TYPE_OF_WA) });
-        }
-      }).addTo(map);
-    });
-
-    function setWasteTypeColor(type) {
-      switch (type) {
-        case "Plastic": return "yellow";
-        case "Organic": return "green";
-        case "Metal": return "grey";
-        default: return "orange";
-      }
-    }
-
-    function predictWastePattern(layer) {
-      const usagePattern = Math.random();
-      return usagePattern > 0.6 ? "High accumulation expected" : "Normal levels expected";
-    }
-
-    function suggestNewContainerLocations() {
-      if (zonesLayer && showNewContainers) {
-        zonesLayer.eachLayer(function(layer) {
-          const centroid = layer.getBounds().getCenter();
-          L.circleMarker(centroid, { radius: 6, fillColor: 'blue', color: 'blue', weight: 2, fillOpacity: 0.6 })
-            .bindPopup("Suggested Container Location").addTo(map);
+    // ميزة التنبؤ بالنفايات
+    function toggleWastePrediction() {
+      showPrediction = !showPrediction;
+      if (wasteContainersLayer) {
+        wasteContainersLayer.eachLayer(function(layer) {
+          const wasteType = layer.feature.properties.TYPE_OF_WA;
+          const prediction = showPrediction ? predictWastePattern() : "No Prediction";
+          layer.bindPopup(`<strong>Material:</strong> ${wasteType} <br><strong>Prediction:</strong> ${prediction}`);
         });
       }
     }
 
-    function suggestRecyclingPoints() {
-      if (zonesLayer && showRecyclingPoints) {
+    function predictWastePattern() {
+      const usagePattern = Math.random();
+      return usagePattern > 0.6 ? "High accumulation expected" : "Normal levels expected";
+    }
+
+    // ميزة اقتراح المواقع الجديدة للحاويات
+    function toggleNewContainerSuggestions() {
+      showNewContainers = !showNewContainers;
+      if (zonesLayer) {
         zonesLayer.eachLayer(function(layer) {
-          if (layer.feature.properties.commonWasteType === "Plastic") {
+          const centroid = layer.getBounds().getCenter();
+          if (showNewContainers) {
+            L.circleMarker(centroid, { radius: 6, fillColor: 'blue', color: 'blue', weight: 2, fillOpacity: 0.6 })
+              .bindPopup("Suggested Container Location").addTo(map);
+          }
+        });
+      }
+    }
+
+    // ميزة اقتراح نقاط إعادة التدوير
+    function toggleRecyclingPoints() {
+      showRecyclingPoints = !showRecyclingPoints;
+      if (zonesLayer) {
+        zonesLayer.eachLayer(function(layer) {
+          if (showRecyclingPoints && layer.feature.properties.commonWasteType === "Plastic") {
             L.marker(layer.getBounds().getCenter(), { icon: L.divIcon({ className: 'recycling-icon', html: '♻' }) })
               .bindPopup("Suggested Recycling Point for Plastic").addTo(map);
           }
@@ -150,7 +87,9 @@
       }
     }
 
-    function calculateOptimalRoute() {
+    // ميزة حساب المسار الأمثل
+    function toggleOptimalRoute() {
+      showOptimalRoute = !showOptimalRoute;
       if (wasteContainersLayer && showOptimalRoute) {
         const containers = wasteContainersLayer.getLayers();
         for (let i = 0; i < containers.length - 1; i++) {
@@ -166,31 +105,36 @@
       }
     }
 
-    // Event Listeners for Buttons
-    document.getElementById("togglePrediction").onclick = function() {
-      showPrediction = !showPrediction;
-      map.eachLayer(function(layer) {
-        map.removeLayer(layer);
-      });
-      map.addLayer(zonesLayer);
-      map.addLayer(wasteContainersLayer);
-    };
+    // تحميل البيانات وإضافة الطبقات
+    $.getJSON("RamallahZones.json", function(RZ) {
+      zonesLayer = L.geoJson(RZ, {
+        style: function(feature) {
+          return {
+            fillColor: "green",
+            fillOpacity: 0.3,
+            color: "green",
+            weight: 1.0,
+            opacity: 0.7
+          };
+        },
+      }).addTo(map);
+    });
 
-    document.getElementById("toggleNewContainers").onclick = function() {
-      showNewContainers = !showNewContainers;
-      suggestNewContainerLocations();
-    };
+    $.getJSON("wasteContainer.json", function(WC) {
+      wasteContainersLayer = L.geoJson(WC, {
+        pointToLayer: function(feature, latlng) {
+          return L.circleMarker(latlng, { radius: 5, fillColor: 'orange', color: 'orange', weight: 1, opacity: 1, fillOpacity: 0.8 });
+        }
+      }).addTo(map);
+    });
 
-    document.getElementById("toggleRecyclingPoints").onclick = function() {
-      showRecyclingPoints = !showRecyclingPoints;
-      suggestRecyclingPoints();
-    };
-
-    document.getElementById("toggleOptimalRoute").onclick = function() {
-      showOptimalRoute = !showOptimalRoute;
-      calculateOptimalRoute();
-    };
+    // إضافة أحداث الأزرار للتحكم بالميزات
+    document.getElementById("togglePrediction").onclick = toggleWastePrediction;
+    document.getElementById("toggleNewContainers").onclick = toggleNewContainerSuggestions;
+    document.getElementById("toggleRecyclingPoints").onclick = toggleRecyclingPoints;
+    document.getElementById("toggleOptimalRoute").onclick = toggleOptimalRoute;
 
   </script>
 </body>
 </html>
+
