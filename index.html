@@ -1,9 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">  
-<head>  
-  <meta charset="utf-8" />  
-  <title>Ramallah Waste Containers</title>  
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Ramallah Waste Containers</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
+  <!-- Add the heatmap and locatecontrol CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-heat/dist/leaflet-heat.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.css" />
   <style>
     body { margin: 0; height: 100%; width: 100%; }
     #map { position: absolute; width: 100%; top: 0; bottom: 0; }
@@ -22,7 +25,6 @@
       margin-right: 8px;
       opacity: 0.8;
     }
-    /* CSS للأزرار */
     .layer-controls {
       position: absolute;
       top: 10px;
@@ -52,15 +54,19 @@
 <body>
   <div id="map"></div>
 
-  <!-- أزرار التحكم في الطبقات -->
   <div class="layer-controls">
     <div id="toggle-zones" class="layer-control-btn">📍</div>
     <div id="toggle-waste" class="layer-control-btn">🗑️</div>
-    <div id="toggle-roads" class="layer-control-btn">🛤️</div> <!-- زر التحكم في الطرق -->
+    <div id="toggle-roads" class="layer-control-btn">🛤️</div>
+    <div id="toggle-heatmap" class="layer-control-btn">🔥</div> <!-- Heatmap Button -->
+    <div id="toggle-location" class="layer-control-btn">📍</div> <!-- Location Tracking Button -->
   </div>
 
   <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <!-- Add the heatmap and locatecontrol scripts -->
+  <script src="https://unpkg.com/leaflet-heat/dist/leaflet-heat.js"></script>
+  <script src="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.js"></script>
   <script>
     const mapOptions = {
       zoomSnap: 0.5,
@@ -77,6 +83,7 @@
 
     let zonesLayer, wasteContainersLayer, roadsLayer;
     let zoneColors = {}, wasteColors = {}, roadColors = {};
+    let heatmapLayer;
 
     function getRandomColor() {
       const letters = '0123456789ABCDEF';
@@ -96,7 +103,16 @@
       return colors;
     }
 
-    // تحميل بيانات RamallahZones وتطبيق الألوان حسب الفئات في NAME_ENGLI
+    // Add heatmap data points for containers
+    function addHeatmapData(data) {
+      let heatPoints = [];
+      data.features.forEach(feature => {
+        heatPoints.push([feature.geometry.coordinates[1], feature.geometry.coordinates[0], 0.5]); // Adjust intensity as needed
+      });
+      heatmapLayer = L.heatLayer(heatPoints, { radius: 25, blur: 15 }).addTo(map);
+    }
+
+    // Load and display data for Ramallah Zones
     $.getJSON("RamallahZones.json", function(RZ) {
       zoneColors = assignRandomColors(RZ, "NAME_ENGLI");
       zonesLayer = L.geoJson(RZ, {
@@ -114,25 +130,25 @@
         }
       }).addTo(map);
 
-      // إضافة الخريطة التوضيحية بعد تحميل طبقة المناطق
-      addLegend();
+      // Add the heatmap for waste containers after loading
+      $.getJSON("wasteContainer.json", function(WC) {
+        wasteColors = assignRandomColors(WC, "TYPE_OF_WA");
+        wasteContainersLayer = L.geoJson(WC, {
+          pointToLayer: function(feature, latlng) {
+            const color = wasteColors[feature.properties.TYPE_OF_WA];
+            return L.circleMarker(latlng, { radius: 8, fillColor: color, color: color, weight: 3, opacity: 1, fillOpacity: 0.9 });
+          },
+          onEachFeature: function(feature, layer) {
+            layer.bindPopup("Container Type: " + feature.properties.TYPE_OF_WA);
+          }
+        }).addTo(map);
+
+        // Add heatmap for waste containers
+        addHeatmapData(WC);
+      });
     });
 
-    // تحميل بيانات wasteContainer وتطبيق الألوان حسب الفئات في TYPE_OF_WA
-    $.getJSON("wasteContainer.json", function(WC) {
-      wasteColors = assignRandomColors(WC, "TYPE_OF_WA");
-      wasteContainersLayer = L.geoJson(WC, {
-        pointToLayer: function(feature, latlng) {
-          const color = wasteColors[feature.properties.TYPE_OF_WA];
-          return L.circleMarker(latlng, { radius: 8, fillColor: color, color: color, weight: 3, opacity: 1, fillOpacity: 0.9 });
-        },
-        onEachFeature: function(feature, layer) {
-          layer.bindPopup("Container Type: " + feature.properties.TYPE_OF_WA);
-        }
-      }).addTo(map);
-    });
-
-    // تحميل بيانات الطرق وتطبيق الألوان حسب Class
+    // Load data for roads
     $.getJSON("mygeodata_merged.json", function(roadData) {
       roadColors = assignRandomColors(roadData, "Class");
       roadsLayer = L.geoJson(roadData, {
@@ -149,36 +165,37 @@
       }).addTo(map);
     });
 
-    // دالة لإضافة الخريطة التوضيحية (Legend)
+    // Add user location tracking
+    const locateControl = L.control.locate({
+      position: 'topright',
+      strings: { title: "Show my location" },
+      setView: true,
+      follow: true
+    }).addTo(map);
+
+    // Add legend
     function addLegend() {
       const legend = L.control({ position: 'topright' });
       legend.onAdd = function () {
         const div = L.DomUtil.create('div', 'info legend');
-
-        // ألوان مناطق RamallahZones
         div.innerHTML += '<strong>Zones</strong><br>';
         for (const zone in zoneColors) {
           div.innerHTML += `<i style="background:${zoneColors[zone]}"></i> ${zone}<br>`;
         }
-
-        // ألوان أنواع الحاويات wasteContainer
         div.innerHTML += '<strong>Waste Container Types</strong><br>';
         for (const type in wasteColors) {
           div.innerHTML += `<i style="background:${wasteColors[type]}"></i> ${type}<br>`;
         }
-
-        // ألوان طبقة الطرق
         div.innerHTML += '<strong>Road Classes</strong><br>';
         for (const roadClass in roadColors) {
           div.innerHTML += `<i style="background:${roadColors[roadClass]}"></i> ${roadClass}<br>`;
         }
-
         return div;
       };
       legend.addTo(map);
     }
 
-    // التحكم في عرض وإخفاء طبقة RamallahZones
+    // Layer control buttons
     document.getElementById("toggle-zones").addEventListener("click", function() {
       if (map.hasLayer(zonesLayer)) {
         map.removeLayer(zonesLayer);
@@ -187,7 +204,6 @@
       }
     });
 
-    // التحكم في عرض وإخفاء طبقة wasteContainer
     document.getElementById("toggle-waste").addEventListener("click", function() {
       if (map.hasLayer(wasteContainersLayer)) {
         map.removeLayer(wasteContainersLayer);
@@ -196,7 +212,6 @@
       }
     });
 
-    // التحكم في عرض وإخفاء طبقة الطرق
     document.getElementById("toggle-roads").addEventListener("click", function() {
       if (map.hasLayer(roadsLayer)) {
         map.removeLayer(roadsLayer);
@@ -204,6 +219,19 @@
         map.addLayer(roadsLayer);
       }
     });
+
+    document.getElementById("toggle-heatmap").addEventListener("click", function() {
+      if (map.hasLayer(heatmapLayer)) {
+        map.removeLayer(heatmapLayer);
+      } else {
+        map.addLayer(heatmapLayer);
+      }
+    });
+
+    document.getElementById("toggle-location").addEventListener("click", function() {
+      locateControl.start();
+    });
   </script>
-</body>   
+</body>
 </html>
+
