@@ -22,10 +22,41 @@
       margin-right: 8px;
       opacity: 0.8;
     }
+    /* CSS للأزرار */
+    .layer-controls {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      display: flex;
+      gap: 10px;
+    }
+    .layer-control-btn {
+      background-color: #fff;
+      border: 2px solid #444;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+    }
+    .layer-control-btn:hover {
+      background-color: #eee;
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
+
+  <!-- أزرار التحكم في الطبقات -->
+  <div class="layer-controls">
+    <div id="toggle-zones" class="layer-control-btn">Z</div>
+    <div id="toggle-waste" class="layer-control-btn">W</div>
+  </div>
 
   <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
@@ -122,6 +153,24 @@
       };
       legend.addTo(map);
     }
+
+    // التحكم في عرض وإخفاء طبقة RamallahZones
+    document.getElementById("toggle-zones").addEventListener("click", function() {
+      if (map.hasLayer(zonesLayer)) {
+        map.removeLayer(zonesLayer);
+      } else {
+        map.addLayer(zonesLayer);
+      }
+    });
+
+    // التحكم في عرض وإخفاء طبقة wasteContainer
+    document.getElementById("toggle-waste").addEventListener("click", function() {
+      if (map.hasLayer(wasteContainersLayer)) {
+        map.removeLayer(wasteContainersLayer);
+      } else {
+        map.addLayer(wasteContainersLayer);
+      }
+    });
   </script>
 </body> 
 </html>
