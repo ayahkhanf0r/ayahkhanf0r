@@ -1,26 +1,27 @@
 <!DOCTYPE html> 
 <html lang="en"> 
-<head> 
-  <meta charset="utf-8" />
-  <title>Ramallah Waste Containers</title> 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" /> 
+<head>  
+  <meta charset="utf-8" /> 
+  <title>Ramallah Waste Containers</title>  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />  
   <style> 
-    body { margin: 0; height: 100%; width: 100%; }
-    #map { position: absolute; width: 100%; top: 0; bottom: 0; }
+    body { margin: 0; height: 100%; width: 100%; display: flex; flex-direction: column; }
+    #map { flex: 1; position: relative; }
+    .control-panel { background-color: #f8f9fa; padding: 10px; display: flex; gap: 10px; justify-content: center; border-bottom: 1px solid #ccc; }
     .floating-info { position: absolute; background-color: white; padding: 10px; border: 1px solid #ccc; border-radius: 5px; z-index: 1000; display: none; }
     .side-note { position: absolute; bottom: 10px; right: 10px; background-color: rgba(255, 0, 0, 0.8); padding: 15px; border: 1px solid #ddd; border-radius: 8px; z-index: 1000; font-family: Arial, sans-serif; font-size: 14px; }
   </style>
 </head>
 <body>
+  <div class="control-panel">
+    <button id="togglePrediction">Toggle Waste Prediction</button>
+    <button id="toggleNewContainers">Toggle New Container Suggestions</button>
+    <button id="toggleRecyclingPoints">Toggle Recycling Points</button>
+    <button id="toggleOptimalRoute">Toggle Optimal Route</button>
+  </div>
   <div id="map"></div>
   <div class="floating-info" id="infoBox"></div> <!-- Floating information box -->
-  <div class="side-note">
-    <h4>NOTES!:</h4>
-    <ul>
-      <li>**Note (the final code has been customized by me using new functions):</li>
-      <li>10 advanced features included for waste management intelligence.</li>
-    </ul>
-  </div>
+  
   <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
   <script>
@@ -40,6 +41,11 @@
     let zonesLayer, wasteContainersLayer;
     const events = [{ name: "Festival", location: [31.905, 35.203], impactRadius: 0.01, wasteIncrease: 0.2 }];
     const weatherImpact = { "hot": 0.3, "rainy": 0.2 };
+
+    let showPrediction = false;
+    let showNewContainers = false;
+    let showRecyclingPoints = false;
+    let showOptimalRoute = false;
 
     function getColor(name) {
       switch (name) {
@@ -86,9 +92,6 @@
           });
         }
       }).addTo(map);
-      suggestNewContainerLocations(zonesLayer);
-      suggestRecyclingPoints(zonesLayer);
-      layerControl.addOverlay(zonesLayer, "Zones");
     });
 
     $.getJSON("wasteContainer.json", function(WC) {
@@ -102,14 +105,14 @@
           return L.circleMarker(latlng, { radius: 5, fillColor: color, color: color, weight: 1, opacity: 1, fillOpacity: 0.8 });
         },
         onEachFeature: function(feature, layer) {
-          const prediction = predictWastePattern(layer);
-          const wasteType = feature.properties.TYPE_OF_WA;
-          layer.bindPopup(`<strong>Material:</strong> ${wasteType} <br><strong>Size:</strong> ${feature.properties.SIZE_OF_TH} <br><strong>Prediction:</strong> ${prediction}`);
-          layer.setStyle({ fillColor: setWasteTypeColor(wasteType) });
+          if (showPrediction) {
+            const prediction = predictWastePattern(layer);
+            const wasteType = feature.properties.TYPE_OF_WA;
+            layer.bindPopup(`<strong>Material:</strong> ${wasteType} <br><strong>Size:</strong> ${feature.properties.SIZE_OF_TH} <br><strong>Prediction:</strong> ${prediction}`);
+          }
+          layer.setStyle({ fillColor: setWasteTypeColor(feature.properties.TYPE_OF_WA) });
         }
       }).addTo(map);
-      calculateOptimalRoute(wasteContainersLayer.getLayers());
-      layerControl.addOverlay(wasteContainersLayer, "Waste Containers");
     });
 
     function setWasteTypeColor(type) {
@@ -121,39 +124,73 @@
       }
     }
 
-    function predictFutureOverflow(feature) {
-      const historicalData = Math.random();
-      return historicalData > 0.75;
-    }
-
     function predictWastePattern(layer) {
       const usagePattern = Math.random();
       return usagePattern > 0.6 ? "High accumulation expected" : "Normal levels expected";
     }
 
-    function suggestNewContainerLocations(zonesLayer) {
-      zonesLayer.eachLayer(function(layer) {
-        const centroid = layer.getBounds().getCenter();
-        L.circleMarker(centroid, { radius: 6, fillColor: 'blue', color: 'blue', weight: 2, fillOpacity: 0.6 }).bindPopup("Suggested Container Location").addTo(map);
-      });
-    }
-
-    function suggestRecyclingPoints(zonesLayer) {
-      zonesLayer.eachLayer(function(layer) {
-        if (layer.feature.properties.commonWasteType === "Plastic") {
-          L.marker(layer.getBounds().getCenter(), { icon: L.divIcon({ className: 'recycling-icon', html: '♻' }) }).bindPopup("Suggested Recycling Point for Plastic").addTo(map);
-        }
-      });
-    }
-
-    function calculateOptimalRoute(containers) {
-      for (let i = 0; i < containers.length - 1; i++) {
-        L.polyline([containers[i].getLatLng(), containers[i + 1].getLatLng()], { color: 'yellow', weight: 2 }).addTo(map).bindPopup("Suggested collection path");
+    function suggestNewContainerLocations() {
+      if (zonesLayer && showNewContainers) {
+        zonesLayer.eachLayer(function(layer) {
+          const centroid = layer.getBounds().getCenter();
+          L.circleMarker(centroid, { radius: 6, fillColor: 'blue', color: 'blue', weight: 2, fillOpacity: 0.6 })
+            .bindPopup("Suggested Container Location").addTo(map);
+        });
       }
     }
 
-    const layerControl = L.control.layers({}, {}).addTo(map);
+    function suggestRecyclingPoints() {
+      if (zonesLayer && showRecyclingPoints) {
+        zonesLayer.eachLayer(function(layer) {
+          if (layer.feature.properties.commonWasteType === "Plastic") {
+            L.marker(layer.getBounds().getCenter(), { icon: L.divIcon({ className: 'recycling-icon', html: '♻' }) })
+              .bindPopup("Suggested Recycling Point for Plastic").addTo(map);
+          }
+        });
+      }
+    }
+
+    function calculateOptimalRoute() {
+      if (wasteContainersLayer && showOptimalRoute) {
+        const containers = wasteContainersLayer.getLayers();
+        for (let i = 0; i < containers.length - 1; i++) {
+          L.polyline(
+            [containers[i].getLatLng(), containers[i + 1].getLatLng()],
+            {
+              color: 'blue',
+              weight: 2,
+              opacity: 0.5
+            }
+          ).addTo(map).bindPopup("Suggested collection path");
+        }
+      }
+    }
+
+    // Event Listeners for Buttons
+    document.getElementById("togglePrediction").onclick = function() {
+      showPrediction = !showPrediction;
+      map.eachLayer(function(layer) {
+        map.removeLayer(layer);
+      });
+      map.addLayer(zonesLayer);
+      map.addLayer(wasteContainersLayer);
+    };
+
+    document.getElementById("toggleNewContainers").onclick = function() {
+      showNewContainers = !showNewContainers;
+      suggestNewContainerLocations();
+    };
+
+    document.getElementById("toggleRecyclingPoints").onclick = function() {
+      showRecyclingPoints = !showRecyclingPoints;
+      suggestRecyclingPoints();
+    };
+
+    document.getElementById("toggleOptimalRoute").onclick = function() {
+      showOptimalRoute = !showOptimalRoute;
+      calculateOptimalRoute();
+    };
+
   </script>
 </body>
 </html>
-
