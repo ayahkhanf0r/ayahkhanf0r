@@ -117,10 +117,10 @@
       zonesLayer = L.geoJson(RZ, {
         style: function(feature) {
           return {
-            fillColor: getZoneColor(feature.properties.NAME),
+            fillColor: getZoneColor(feature.properties.NAME_ENGLI),
             fillOpacity: 0.8,  // Increased opacity for better visibility
-            color: getZoneColor(feature.properties.NAME),
-            weight: 3.0,  // Thicker boundary for visibility
+            color: getZoneColor(feature.properties.NAME_ENGLI),
+            weight: 2.0,  // Thicker boundary for visibility
             opacity: 1.0
           };
         }
@@ -144,8 +144,8 @@
       for (let i = 0; i < containers.length - 1; i++) {
         L.polyline(
           [containers[i].getLatLng(), containers[i + 1].getLatLng()],
-          { color: 'blue', weight: 3, opacity: 0.8 }
-        ).addTo(routesLayer).bindPopup("Suggested collection path");
+          { color: 'blue', weight: 2, opacity: 0.9 }
+        ).addTo(routesLayer).bindPopup("Suggested path");
       }
     }
 
@@ -169,23 +169,7 @@
         for (const zone in zoneColors) {
           div.innerHTML += `<i style="background:${zoneColors[zone]}"></i> ${zone}<br>`;
         }
-
-        // Add waste types to the legend (you can keep this as-is or modify it if needed)
-        const wasteTypes = {
-          'Plastic': getRandomColor(),
-          'Organic': getRandomColor(),
-          'Metal': getRandomColor(),
-          'Other': getRandomColor()
         };
-        div.innerHTML += '<strong>Waste Types</strong><br>';
-        for (const waste in wasteTypes) {
-          div.innerHTML += `<i style="background:${wasteTypes[waste]}"></i> ${waste}<br>`;
-        }
-      });
-
-      return div;
-    };
-    legend.addTo(map);
 
     // Toggle layer visibility with buttons
     document.getElementById('toggleZones').addEventListener('click', () => {
