@@ -143,7 +143,7 @@
           };
         },
         onEachFeature: function(feature, layer) {
-          layer.bindPopup("Road: " + (feature.properties.name || "Unnamed"));
+          layer.bindPopup("Road: " + feature.properties.Class);
         }
       }).addTo(map);
     });
