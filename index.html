@@ -170,6 +170,42 @@
 
     const layerControl = L.control.layers({}, {}).addTo(map);
     layerControl.addOverlay(routesLayer, "Routes");
+
+    // Add the legend to the map
+    const legend = L.control({ position: 'topright' });
+
+    legend.onAdd = function () {
+      const div = L.DomUtil.create('div', 'info legend');
+      const zoneColors = {
+        'Zone1': 'red',
+        'Zone2': 'blue',
+        'Zone3': 'green',
+        'Zone4': 'purple'
+      };
+
+      // Add the Zone legend
+      div.innerHTML += '<strong>Zones</strong><br>';
+      for (const zone in zoneColors) {
+        div.innerHTML += `<i style="background:${zoneColors[zone]}"></i> ${zone}<br>`;
+      }
+
+      const wasteTypes = {
+        'Plastic': 'yellow',
+        'Organic': 'green',
+        'Metal': 'grey',
+        'Other': 'orange'
+      };
+
+      // Add the Waste Type legend
+      div.innerHTML += '<strong>Waste Types</strong><br>';
+      for (const waste in wasteTypes) {
+        div.innerHTML += `<i style="background:${wasteTypes[waste]}"></i> ${waste}<br>`;
+      }
+
+      return div;
+    };
+
+    legend.addTo(map);
   </script>
 </body>
 </html>
