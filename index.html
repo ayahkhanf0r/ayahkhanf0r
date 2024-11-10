@@ -76,7 +76,7 @@
     }).addTo(map);
 
     let zonesLayer, wasteContainersLayer, roadsLayer;
-    let zoneColors = {}, wasteColors = {};
+    let zoneColors = {}, wasteColors = {}, roadColors = {};
 
     function getRandomColor() {
       const letters = '0123456789ABCDEF';
@@ -132,12 +132,13 @@
       }).addTo(map);
     });
 
-    // تحميل بيانات الطرق (mygeodata_merged.json) وتطبيق الألوان عليها
+    // تحميل بيانات الطرق وتطبيق الألوان حسب Class
     $.getJSON("mygeodata_merged.json", function(roadData) {
+      roadColors = assignRandomColors(roadData, "Class");
       roadsLayer = L.geoJson(roadData, {
         style: function(feature) {
           return {
-            color: "#FF5733", // اللون الأحمر للطرق
+            color: roadColors[feature.properties.Class],
             weight: 2,
             opacity: 1
           };
@@ -164,6 +165,12 @@
         div.innerHTML += '<strong>Waste Container Types</strong><br>';
         for (const type in wasteColors) {
           div.innerHTML += `<i style="background:${wasteColors[type]}"></i> ${type}<br>`;
+        }
+
+        // ألوان طبقة الطرق
+        div.innerHTML += '<strong>Road Classes</strong><br>';
+        for (const roadClass in roadColors) {
+          div.innerHTML += `<i style="background:${roadColors[roadClass]}"></i> ${roadClass}<br>`;
         }
 
         return div;
