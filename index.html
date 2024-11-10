@@ -1,59 +1,20 @@
 <!DOCTYPE html>
-<html lang="en"> 
-<head> 
-  <meta charset="utf-8" /> 
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
   <title>Ramallah Waste Containers</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
   <style>
     body { margin: 0; height: 100%; width: 100%; }
     #map { position: absolute; width: 100%; top: 0; bottom: 0; }
     .floating-info { position: absolute; background-color: white; padding: 10px; border: 1px solid #ccc; border-radius: 5px; z-index: 1000; display: none; }
-    .layer-toggle-buttons {
-      position: absolute;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 1000;
-      display: flex;
-      gap: 10px;
-    }
-    .layer-toggle-buttons button {
-      padding: 10px;
-      background-color: #fff;
-      border: 1px solid #ccc;
-      border-radius: 50%;
-      cursor: pointer;
-      font-size: 16px;
-      line-height: 1;
-    }
-    .info.legend {
-      background-color: green;
-      color: white;
-      padding: 10px;
-      border-radius: 5px;
-      line-height: 1.5;
-      box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
-    }
-    .info.legend i {
-      width: 18px;
-      height: 18px;
-      float: left;
-      margin-right: 8px;
-      opacity: 0.8;
-    }
+    .legend { position: absolute; top: 10px; right: 10px; background-color: white; padding: 10px; border: 1px solid #ccc; border-radius: 5px; z-index: 1000; }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div class="floating-info" id="infoBox"></div>
-
-  <!-- Layer control buttons with symbols -->
-  <div class="layer-toggle-buttons">
-    <button id="toggleZones">📍</button> <!-- Pin symbol for Zones -->
-    <button id="toggleContainers">🗑️</button> <!-- Trash can symbol for Waste Containers -->
-    <button id="toggleRoutes">🛤️</button> <!-- Rail track symbol for Routes -->
-  </div>
-
+  <div class="floating-info" id="infoBox"></div> <!-- Floating information box -->
+  <div class="legend" id="legend"></div> <!-- Legend -->
   <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
   <script>
@@ -70,53 +31,46 @@
       maxZoom: 20
     }).addTo(map);
 
-    let zonesLayer, wasteContainersLayer, routesLayer;
+    let zonesLayer, wasteContainersLayer;
+    const events = [{ name: "Festival", location: [31.905, 35.203], impactRadius: 0.01, wasteIncrease: 0.2 }];
+    const weatherImpact = { "hot": 0.3, "rainy": 0.2 };
 
-    // Define ascending colors for zones based on NAME_ENGLI
-    function getColor(name) {
-      const colors = {
-        "Zone1": "#ffcccc", // Light Red
-        "Zone2": "#ff9999", // Red
-        "Zone3": "#ff6666", // Medium Red
-        "Zone4": "#ff3333", // Darker Red
-        "Zone5": "#ff0000", // Dark Red
-        "Zone6": "#990000"  // Darkest Red
-      };
-      return colors[name] || "#999999"; // Default Gray for unspecified zones
+    // Function to generate ascending colors based on zone name (using a color scale)
+    function getColorForZone(index) {
+      const colorScale = ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#8a2be2']; // Example gradient
+      return colorScale[index % colorScale.length];
     }
 
-    // Add legend for all layers
-    const legend = L.control({ position: 'topright' });
-    legend.onAdd = function () {
-      const div = L.DomUtil.create('div', 'info legend');
-      const categories = {
-        "Zones": ["Zone1", "Zone2", "Zone3", "Zone4", "Zone5", "Zone6"],
-        "Containers": ["Waste Containers"],
-        "Routes": ["Routes"]
+    // Function to generate the fill color dynamically based on feature properties (ascending order)
+    function styleZones(feature) {
+      const zones = ["Zone1", "Zone2", "Zone3", "Zone4", "Zone5"];
+      const index = zones.indexOf(feature.properties.NAME_ENGLI);
+      return {
+        fillColor: getColorForZone(index),
+        fillOpacity: 0.3,
+        color: getColorForZone(index),
+        weight: 1.0,
+        opacity: 0.7
       };
-      div.innerHTML += "<h4>Legend</h4>";
-      Object.entries(categories).forEach(([category, items]) => {
-        div.innerHTML += `<strong>${category}</strong><br>`;
-        items.forEach(item => {
-          div.innerHTML += `<i style="background: ${getColor(item) || 'gray'}"></i> ${item}<br>`;
-        });
-      });
-      return div;
-    };
-    legend.addTo(map);
+    }
 
-    // Load and display zones with colors on the map
+    function getFillStatus(size) {
+      return Math.random() * size;
+    }
+
+    function checkNearbyEvent(latlng) {
+      for (let event of events) {
+        let distance = map.distance(latlng, event.location) / 1000;
+        if (distance < event.impactRadius) {
+          return event.wasteIncrease;
+        }
+      }
+      return 0;
+    }
+
     $.getJSON("RamallahZones.json", function(RZ) {
       zonesLayer = L.geoJson(RZ, {
-        style: function(feature) {
-          return {
-            fillColor: getColor(feature.properties.NAME_ENGLI),
-            fillOpacity: 0.5,
-            color: getColor(feature.properties.NAME_ENGLI),
-            weight: 1.0,
-            opacity: 0.7
-          };
-        },
+        style: styleZones,
         onEachFeature: function(feature, layer) {
           layer.on('click', function(e) {
             const infoBox = document.getElementById('infoBox');
@@ -126,53 +80,85 @@
             infoBox.innerHTML = `<strong>Zone:</strong> ${feature.properties.NAME_ENGLI} <br><strong>MAIL_CODE:</strong> ${feature.properties.MAIL_CODE}`;
           });
         }
-      });
+      }).addTo(map);
+      suggestNewContainerLocations(zonesLayer);
+      suggestRecyclingPoints(zonesLayer);
     });
 
-    // Load and display waste containers
-    $.getJSON("WasteContainers.json", function(data) {
-      wasteContainersLayer = L.geoJson(data, {
-        pointToLayer: function (feature, latlng) {
-          return L.marker(latlng, { icon: L.divIcon({ className: 'waste-container-icon' }) });
+    $.getJSON("wasteContainer.json", function(WC) {
+      wasteContainersLayer = L.geoJson(WC, {
+        pointToLayer: function(feature, latlng) {
+          const eventImpact = checkNearbyEvent(latlng);
+          const isHotDay = true;
+          const impact = isHotDay ? weatherImpact.hot : 0;
+          const fillStatus = getFillStatus(feature.properties.SIZE_OF_TH) * (1 + eventImpact) * (1 + impact);
+          const color = fillStatus > 0.8 * feature.properties.SIZE_OF_TH ? 'red' : 'orange';
+          return L.circleMarker(latlng, { radius: 5, fillColor: color, color: color, weight: 1, opacity: 1, fillOpacity: 0.8 });
         },
-        onEachFeature: function (feature, layer) {
-          layer.bindPopup(`<strong>Container ID:</strong> ${feature.properties.id}`);
+        onEachFeature: function(feature, layer) {
+          const prediction = predictWastePattern(layer);
+          const wasteType = feature.properties.TYPE_OF_WA;
+          layer.bindPopup(`<strong>Material:</strong> ${wasteType} <br><strong>Size:</strong> ${feature.properties.SIZE_OF_TH} <br><strong>Prediction:</strong> ${prediction}`);
+          layer.setStyle({ fillColor: setWasteTypeColor(wasteType) });
+        }
+      }).addTo(map);
+      calculateOptimalRoute(wasteContainersLayer.getLayers());
+    });
+
+    function setWasteTypeColor(type) {
+      switch (type) {
+        case "Plastic": return "yellow";
+        case "Organic": return "green";
+        case "Metal": return "grey";
+        default: return "orange";
+      }
+    }
+
+    function predictWastePattern(layer) {
+      const usagePattern = Math.random();
+      return usagePattern > 0.6 ? "High accumulation expected" : "Normal levels expected";
+    }
+
+    function suggestNewContainerLocations(zonesLayer) {
+      zonesLayer.eachLayer(function(layer) {
+        const centroid = layer.getBounds().getCenter();
+        L.circleMarker(centroid, { radius: 6, fillColor: 'blue', color: 'blue', weight: 2, fillOpacity: 0.6 }).bindPopup("Suggested Container Location").addTo(map);
+      });
+    }
+
+    function suggestRecyclingPoints(zonesLayer) {
+      zonesLayer.eachLayer(function(layer) {
+        if (layer.feature.properties.commonWasteType === "Plastic") {
+          L.marker(layer.getBounds().getCenter(), { icon: L.divIcon({ className: 'recycling-icon', html: '♻' }) }).bindPopup("Suggested Recycling Point for Plastic").addTo(map);
         }
       });
-    });
+    }
 
-    // Load and display routes
-    $.getJSON("Routes.json", function(data) {
-      routesLayer = L.geoJson(data, {
-        style: { color: 'orange', weight: 2 }
-      });
-    });
-
-    // Toggle buttons functionality
-    document.getElementById("toggleZones").onclick = function () {
-      if (map.hasLayer(zonesLayer)) {
-        map.removeLayer(zonesLayer);
-      } else {
-        map.addLayer(zonesLayer);
+    function calculateOptimalRoute(containers) {
+      for (let i = 0; i < containers.length - 1; i++) {
+        L.polyline(
+          [containers[i].getLatLng(), containers[i + 1].getLatLng()],
+          {
+            color: 'blue',     // Change the color to blue
+            weight: 2,
+            opacity: 0.5       // Add transparency for reduced overlap
+          }
+        ).addTo(map).bindPopup("Suggested collection path");
       }
-    };
+    }
 
-    document.getElementById("toggleContainers").onclick = function () {
-      if (map.hasLayer(wasteContainersLayer)) {
-        map.removeLayer(wasteContainersLayer);
-      } else {
-        map.addLayer(wasteContainersLayer);
-      }
-    };
+    // Create the legend dynamically
+    function createLegend() {
+      const legend = document.getElementById('legend');
+      legend.innerHTML = `<h4>Legend</h4>
+        <p><strong>Zones</strong></p>
+        <div><span style="background-color: red;"></span> Zone1</div>
+        <div><span style="background-color: blue;"></span> Zone2</div>
+        <div><span style="background-color: green;"></span> Zone3</div>
+        <div><span style="background-color: purple;"></span> Zone4</div>`;
+    }
 
-    document.getElementById("toggleRoutes").onclick = function () {
-      if (map.hasLayer(routesLayer)) {
-        map.removeLayer(routesLayer);
-      } else {
-        map.addLayer(routesLayer);
-      }
-    };
+    createLegend(); // Call legend creation function
   </script>
-</body> 
+</body>
 </html>
-
