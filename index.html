@@ -95,6 +95,21 @@
     const events = [{ name: "Festival", location: [31.905, 35.203], impactRadius: 0.01, wasteIncrease: 0.2 }];
     const weatherImpact = { "hot": 0.3, "rainy": 0.2 };
 
+    // Zone color mapping
+    const zoneColorMapping = {
+      'Zone 1': '#FF5733',  // Red color for Zone 1
+      'Zone 2': '#33FF57',  // Green color for Zone 2
+      'Zone 3': '#3357FF',  // Blue color for Zone 3
+      'Zone 4': '#FFFF33',  // Yellow color for Zone 4
+      'Zone 5': '#FF33A6',  // Pink color for Zone 5
+      // Add more zones with their corresponding colors as needed
+    };
+
+    // Function to get color for a zone based on its name
+    function getZoneColor(name) {
+      return zoneColorMapping[name] || getRandomColor(); // Use predefined color or fallback to random color
+    }
+
     function getRandomColor() {
       const letters = '0123456789ABCDEF';
       let color = '#';
@@ -106,10 +121,6 @@
 
     function getWasteContainerColor(type) {
       return getRandomColor(); // Assign random color to waste containers
-    }
-
-    function getZoneColor(name) {
-      return getRandomColor(); // Assign random color to zones
     }
 
     $.getJSON("RamallahZones.json", function(RZ) {
@@ -154,19 +165,19 @@
       const div = L.DomUtil.create('div', 'info legend');
       const zoneColors = {};
 
-      // Loop through each zone and assign a random color based on NAME_ENGLI
+      // Loop through each zone and assign a color based on NAME_ENGLI
       $.getJSON("RamallahZones.json", function(RZ) {
         RZ.features.forEach(function(feature) {
           const zoneName = feature.properties.NAME_ENGLI; // Use NAME_ENGLI for zone names
           if (!zoneColors[zoneName]) {
-            zoneColors[zoneName] = getRandomColor(); // Assign random color
+            zoneColors[zoneName] = getZoneColor(zoneName); // Assign color from zoneColorMapping
           }
         });
 
         // Add the Zone category to the legend dynamically
         div.innerHTML += '<strong>Zones</strong><br>';
         for (const zone in zoneColors) {
-          div.innerHTML += <i style="background:${zoneColors[zone]}"></i> ${zone}<br>;
+          div.innerHTML += `<i style="background:${zoneColors[zone]}"></i> ${zone}<br>`;
         }
 
         // Add waste types to the legend (you can keep this as-is or modify it if needed)
@@ -178,7 +189,7 @@
         };
         div.innerHTML += '<strong>Waste Types</strong><br>';
         for (const waste in wasteTypes) {
-          div.innerHTML += <i style="background:${wasteTypes[waste]}"></i> ${waste}<br>;
+          div.innerHTML += `<i style="background:${wasteTypes[waste]}"></i> ${waste}<br>`;
         }
       });
 
@@ -196,20 +207,4 @@
     });
 
     document.getElementById('toggleContainers').addEventListener('click', () => {
-      if (map.hasLayer(wasteContainersLayer)) {
-        map.removeLayer(wasteContainersLayer);
-      } else {
-        map.addLayer(wasteContainersLayer);
-      }
-    });
-
-    document.getElementById('toggleRoutes').addEventListener('click', () => {
-      if (map.hasLayer(routesLayer)) {
-        map.removeLayer(routesLayer);
-      } else {
-        map.addLayer(routesLayer);
-      }
-    });
-  </script>
-</body> 
-</html>
+      if (
