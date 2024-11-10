@@ -103,7 +103,7 @@
       const heatPoints = data.features.map(feature => [
         feature.geometry.coordinates[1],
         feature.geometry.coordinates[0],
-        0.5 // Intensity value for heatmap, adjust as needed
+        feature.properties.SIZE_OF_TH || 0.5 // Intensity based on SIZE_OF_TH; default to 0.5 if missing
       ]);
       heatmapLayer = L.heatLayer(heatPoints, { radius: 25, blur: 15 }).addTo(map);
     }
@@ -141,7 +141,7 @@
         }),
         onEachFeature: (feature, layer) => layer.bindPopup("Zone: " + feature.properties.NAME_ENGLI)
       }).addTo(map);
-      addLegend(); // Add legend after loading zones layer
+      addLegend();
     });
 
     $.getJSON("wasteContainer.json", function(WC) {
