@@ -1,14 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
+<html lang="en"> 
+<head> 
+  <meta charset="utf-8" /> 
   <title>Ramallah Waste Containers</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
   <style>
     body { margin: 0; height: 100%; width: 100%; }
     #map { position: absolute; width: 100%; top: 0; bottom: 0; }
     .floating-info { position: absolute; background-color: white; padding: 10px; border: 1px solid #ccc; border-radius: 5px; z-index: 1000; display: none; }
-    .side-note { position: absolute; bottom: 10px; right: 10px; background-color: rgba(255, 0, 0, 0.8); padding: 15px; border: 1px solid #ddd; border-radius: 8px; z-index: 1000; font-family: Arial, sans-serif; font-size: 14px; }
     .layer-toggle-buttons {
       position: absolute;
       top: 10px;
@@ -46,14 +45,7 @@
 </head>
 <body>
   <div id="map"></div>
-  <div class="floating-info" id="infoBox"></div> <!-- Floating information box -->
-  <div class="side-note">
-    <h4>NOTES!:</h4>
-    <ul>
-      <li>**Note (the final code has been customized by me using new functions):</li>
-      <li>10 advanced features included for waste management intelligence.</li>
-    </ul>
-  </div>
+  <div class="floating-info" id="infoBox"></div>
 
   <!-- Layer control buttons with symbols -->
   <div class="layer-toggle-buttons">
@@ -78,29 +70,36 @@
       maxZoom: 20
     }).addTo(map);
 
-    let zonesLayer, wasteContainersLayer;
+    let zonesLayer, wasteContainersLayer, routesLayer;
 
-    // Define colors for zones
+    // Define ascending colors for zones based on NAME_ENGLI
     function getColor(name) {
-      switch (name) {
-        case "Zone1": return "#FF5733"; // Orange-Red
-        case "Zone2": return "#33FF57"; // Green
-        case "Zone3": return "#3357FF"; // Blue
-        case "Zone4": return "#FF33A1"; // Pink
-        case "Zone5": return "#FFD733"; // Yellow
-        case "Zone6": return "#8C33FF"; // Purple
-        default: return "#999999";      // Gray for unspecified zones
-      }
+      const colors = {
+        "Zone1": "#ffcccc", // Light Red
+        "Zone2": "#ff9999", // Red
+        "Zone3": "#ff6666", // Medium Red
+        "Zone4": "#ff3333", // Darker Red
+        "Zone5": "#ff0000", // Dark Red
+        "Zone6": "#990000"  // Darkest Red
+      };
+      return colors[name] || "#999999"; // Default Gray for unspecified zones
     }
 
-    // Add legend
-    const legend = L.control({ position: 'bottomright' });
+    // Add legend for all layers
+    const legend = L.control({ position: 'topright' });
     legend.onAdd = function () {
       const div = L.DomUtil.create('div', 'info legend');
-      const zones = ["Zone1", "Zone2", "Zone3", "Zone4", "Zone5", "Zone6"];
-      zones.forEach(zone => {
-        div.innerHTML +=
-          `<i style="background: ${getColor(zone)}"></i> ${zone}<br>`;
+      const categories = {
+        "Zones": ["Zone1", "Zone2", "Zone3", "Zone4", "Zone5", "Zone6"],
+        "Containers": ["Waste Containers"],
+        "Routes": ["Routes"]
+      };
+      div.innerHTML += "<h4>Legend</h4>";
+      Object.entries(categories).forEach(([category, items]) => {
+        div.innerHTML += `<strong>${category}</strong><br>`;
+        items.forEach(item => {
+          div.innerHTML += `<i style="background: ${getColor(item) || 'gray'}"></i> ${item}<br>`;
+        });
       });
       return div;
     };
@@ -112,7 +111,7 @@
         style: function(feature) {
           return {
             fillColor: getColor(feature.properties.NAME_ENGLI),
-            fillOpacity: 0.3,
+            fillOpacity: 0.5,
             color: getColor(feature.properties.NAME_ENGLI),
             weight: 1.0,
             opacity: 0.7
@@ -127,9 +126,53 @@
             infoBox.innerHTML = `<strong>Zone:</strong> ${feature.properties.NAME_ENGLI} <br><strong>MAIL_CODE:</strong> ${feature.properties.MAIL_CODE}`;
           });
         }
-      }).addTo(map);
+      });
     });
 
+    // Load and display waste containers
+    $.getJSON("WasteContainers.json", function(data) {
+      wasteContainersLayer = L.geoJson(data, {
+        pointToLayer: function (feature, latlng) {
+          return L.marker(latlng, { icon: L.divIcon({ className: 'waste-container-icon' }) });
+        },
+        onEachFeature: function (feature, layer) {
+          layer.bindPopup(`<strong>Container ID:</strong> ${feature.properties.id}`);
+        }
+      });
+    });
+
+    // Load and display routes
+    $.getJSON("Routes.json", function(data) {
+      routesLayer = L.geoJson(data, {
+        style: { color: 'orange', weight: 2 }
+      });
+    });
+
+    // Toggle buttons functionality
+    document.getElementById("toggleZones").onclick = function () {
+      if (map.hasLayer(zonesLayer)) {
+        map.removeLayer(zonesLayer);
+      } else {
+        map.addLayer(zonesLayer);
+      }
+    };
+
+    document.getElementById("toggleContainers").onclick = function () {
+      if (map.hasLayer(wasteContainersLayer)) {
+        map.removeLayer(wasteContainersLayer);
+      } else {
+        map.addLayer(wasteContainersLayer);
+      }
+    };
+
+    document.getElementById("toggleRoutes").onclick = function () {
+      if (map.hasLayer(routesLayer)) {
+        map.removeLayer(routesLayer);
+      } else {
+        map.addLayer(routesLayer);
+      }
+    };
   </script>
-</body>
+</body> 
 </html>
+
