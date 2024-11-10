@@ -22,7 +22,6 @@
       margin-right: 8px;
       opacity: 0.8;
     }
-    /* Center layer toggle buttons */
     .layer-toggle-buttons {
       position: absolute;
       top: 10px;
@@ -41,6 +40,20 @@
 </head>
 <body>
   <div id="map"></div>
+  <div class="layer-toggle-buttons"> 
+    <button id="toggleZones">📍</button>
+    <button id="toggleContainers">🗑️</button>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script> 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script> 
+
+  <script> 
+    const map = L.map("map", {
+      center: [31.9045, 35.2045],
+      zoom: 13,
+      zoomSnap: 0.5
+    });
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; OpenStreetMap & CARTO',
@@ -69,7 +82,7 @@
       return colors;
     }
 
-    // Load RamallahZones data and apply colors by category in NAME_ENGLI
+    // Load RamallahZones data
     $.getJSON("RamallahZones.json", function(RZ) {
       zoneColors = assignRandomColors(RZ, "NAME_ENGLI");
       zonesLayer = L.geoJson(RZ, {
@@ -86,10 +99,9 @@
           layer.bindPopup("Zone: " + feature.properties.NAME_ENGLI);
         }
       }).addTo(map);
-      addLegend();
     });
 
-    // Load wasteContainer data and apply colors by category in TYPE_OF_WA
+    // Load wasteContainer data
     $.getJSON("wasteContainer.json", function(WC) {
       wasteColors = assignRandomColors(WC, "TYPE_OF_WA");
       wasteContainersLayer = L.geoJson(WC, {
@@ -102,24 +114,6 @@
         }
       }).addTo(map);
     });
-
-    // Add legend to map
-    function addLegend() {
-      const legend = L.control({ position: 'topright' });
-      legend.onAdd = function () {
-        const div = L.DomUtil.create('div', 'info legend');
-        div.innerHTML += '<strong>Zones</strong><br>';
-        for (const zone in zoneColors) {
-          div.innerHTML += `<i style="background:${zoneColors[zone]}"></i> ${zone}<br>`;
-        }
-        div.innerHTML += '<strong>Waste Container Types</strong><br>';
-        for (const type in wasteColors) {
-          div.innerHTML += `<i style="background:${wasteColors[type]}"></i> ${type}<br>`;
-        }
-        return div;
-      };
-      legend.addTo(map);
-    }
 
     // Toggle layers
     document.getElementById("toggleZones").addEventListener("click", function() {
@@ -137,11 +131,6 @@
         map.addLayer(wasteContainersLayer);
       }
     });
-
-    document.getElementById("toggleRoutes").addEventListener("click", function() {
-      alert("Routes layer functionality not yet implemented.");
-    });
   </script>
 </body>
 </html>
-
