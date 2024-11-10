@@ -141,7 +141,7 @@
         }),
         onEachFeature: (feature, layer) => layer.bindPopup("Zone: " + feature.properties.NAME_ENGLI)
       }).addTo(map);
-      addLegend();
+      addLegend(); // Add legend after loading zones layer
     });
 
     $.getJSON("wasteContainer.json", function(WC) {
@@ -200,4 +200,3 @@
   </script>
 </body>
 </html>
-
