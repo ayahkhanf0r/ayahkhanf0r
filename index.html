@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head> 
+<head>  
   <meta charset="utf-8" />  
   <title>Ramallah Waste Containers</title>  
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" /> 
@@ -95,6 +95,15 @@
     const events = [{ name: "Festival", location: [31.905, 35.203], impactRadius: 0.01, wasteIncrease: 0.2 }];
     const weatherImpact = { "hot": 0.3, "rainy": 0.2 };
 
+    // Updated function to return green color for waste containers
+    function getWasteContainerColor(type) {
+      return '#008000'; // Green color for all waste containers
+    }
+
+    function getZoneColor(name) {
+      return getRandomColor(); // Assign random color to zones
+    }
+
     function getRandomColor() {
       const letters = '0123456789ABCDEF';
       let color = '#';
@@ -102,14 +111,6 @@
         color += letters[Math.floor(Math.random() * 16)];
       }
       return color;
-    }
-
-    function getWasteContainerColor(type) {
-      return getRandomColor(); // Assign random color to waste containers
-    }
-
-    function getZoneColor(name) {
-      return getRandomColor(); // Assign random color to zones
     }
 
     $.getJSON("RamallahZones.json", function(RZ) {
@@ -152,18 +153,30 @@
     const legend = L.control({ position: 'topright' });
     legend.onAdd = function () {
       const div = L.DomUtil.create('div', 'info legend');
-      const wasteTypes = {};
+      const zoneColors = {};
 
-      // Loop through each waste container and assign a color based on TYPE_OF_WA
-      $.getJSON("wasteContainer.json", function(WC) {
-        WC.features.forEach(function(feature) {
-          const wasteType = feature.properties.TYPE_OF_WA;
-          if (!wasteTypes[wasteType]) {
-            wasteTypes[wasteType] = getRandomColor(); // Assign random color to each waste type
+      // Loop through each zone and assign a random color based on NAME_ENGLI
+      $.getJSON("RamallahZones.json", function(RZ) {
+        RZ.features.forEach(function(feature) {
+          const zoneName = feature.properties.NAME_ENGLI; // Use NAME_ENGLI for zone names
+          if (!zoneColors[zoneName]) {
+            zoneColors[zoneName] = getRandomColor(); // Assign random color
           }
         });
 
-        // Add waste types to the legend dynamically
+        // Add the Zone category to the legend dynamically
+        div.innerHTML += '<strong>Zones</strong><br>';
+        for (const zone in zoneColors) {
+          div.innerHTML += `<i style="background:${zoneColors[zone]}"></i> ${zone}<br>`;
+        }
+
+        // Add waste types to the legend (you can keep this as-is or modify it if needed)
+        const wasteTypes = {
+          'Plastic': getRandomColor(),
+          'Organic': getRandomColor(),
+          'Metal': getRandomColor(),
+          'Other': getRandomColor()
+        };
         div.innerHTML += '<strong>Waste Types</strong><br>';
         for (const waste in wasteTypes) {
           div.innerHTML += `<i style="background:${wasteTypes[waste]}"></i> ${waste}<br>`;
