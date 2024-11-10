@@ -96,13 +96,13 @@
     const weatherImpact = { "hot": 0.3, "rainy": 0.2 };
 
     function getWasteContainerColor(type) {
-      const colorScale = ['#FF5733', '#FFC300', '#DAF7A6', '#33FF57', '#3375FF'];
+      const colorScale = ['#FF5733', '#FFC300', '#DAF7A6', '#33FF57', '#3375FF']; // Bright colors
       const types = ['Plastic', 'Organic', 'Metal', 'Other'];
       return colorScale[types.indexOf(type) % colorScale.length];
     }
 
     function getZoneColor(name) {
-      const colorScale = ['#FF5733', '#FFC300', '#DAF7A6', '#33FF57', '#3375FF'];
+      const colorScale = ['#FF5733', '#FFC300', '#DAF7A6', '#33FF57', '#3375FF']; // Bright colors
       const zoneNames = ['Zone1', 'Zone2', 'Zone3', 'Zone4', 'Zone5'];
       return colorScale[zoneNames.indexOf(name) % colorScale.length];
     }
@@ -112,10 +112,10 @@
         style: function(feature) {
           return {
             fillColor: getZoneColor(feature.properties.NAME),
-            fillOpacity: 0.4,  // Make colors transparent
+            fillOpacity: 0.5,  // Reduced opacity for better visibility
             color: getZoneColor(feature.properties.NAME),
-            weight: 1.0,
-            opacity: 0.7
+            weight: 2.0,  // Thicker boundary for visibility
+            opacity: 1.0
           };
         }
       }).addTo(map);
@@ -125,7 +125,7 @@
       wasteContainersLayer = L.geoJson(WC, {
         pointToLayer: function(feature, latlng) {
           const color = getWasteContainerColor(feature.properties.TYPE_OF_WA);
-          return L.circleMarker(latlng, { radius: 6, fillColor: color, color: color, weight: 1, opacity: 0.8, fillOpacity: 0.5 });
+          return L.circleMarker(latlng, { radius: 8, fillColor: color, color: color, weight: 2, opacity: 0.9, fillOpacity: 0.6 });
         }
       }).addTo(map);
 
