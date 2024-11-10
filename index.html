@@ -4,8 +4,6 @@
   <meta charset="utf-8" />
   <title>Ramallah Waste Containers</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
-  <!-- Add the heatmap and locatecontrol CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-heat/dist/leaflet-heat.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.css" />
   <style>
     body { margin: 0; height: 100%; width: 100%; }
@@ -58,15 +56,14 @@
     <div id="toggle-zones" class="layer-control-btn">📍</div>
     <div id="toggle-waste" class="layer-control-btn">🗑️</div>
     <div id="toggle-roads" class="layer-control-btn">🛤️</div>
-    <div id="toggle-heatmap" class="layer-control-btn">🔥</div> <!-- Heatmap Button -->
-    <div id="toggle-location" class="layer-control-btn">📍</div> <!-- Location Tracking Button -->
+    <div id="toggle-heatmap" class="layer-control-btn">🔥</div>
+    <div id="toggle-location" class="layer-control-btn">📍</div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-  <!-- Add the heatmap and locatecontrol scripts -->
   <script src="https://unpkg.com/leaflet-heat/dist/leaflet-heat.js"></script>
-  <script src="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.js"></script>
+  <script src="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.js"></script>
   <script>
     const mapOptions = {
       zoomSnap: 0.5,
@@ -81,9 +78,8 @@
       maxZoom: 20
     }).addTo(map);
 
-    let zonesLayer, wasteContainersLayer, roadsLayer;
+    let zonesLayer, wasteContainersLayer, roadsLayer, heatmapLayer;
     let zoneColors = {}, wasteColors = {}, roadColors = {};
-    let heatmapLayer;
 
     function getRandomColor() {
       const letters = '0123456789ABCDEF';
@@ -103,77 +99,15 @@
       return colors;
     }
 
-    // Add heatmap data points for containers
     function addHeatmapData(data) {
-      let heatPoints = [];
-      data.features.forEach(feature => {
-        heatPoints.push([feature.geometry.coordinates[1], feature.geometry.coordinates[0], 0.5]); // Adjust intensity as needed
-      });
+      const heatPoints = data.features.map(feature => [
+        feature.geometry.coordinates[1],
+        feature.geometry.coordinates[0],
+        0.5 // Intensity value for heatmap, adjust as needed
+      ]);
       heatmapLayer = L.heatLayer(heatPoints, { radius: 25, blur: 15 }).addTo(map);
     }
 
-    // Load and display data for Ramallah Zones
-    $.getJSON("RamallahZones.json", function(RZ) {
-      zoneColors = assignRandomColors(RZ, "NAME_ENGLI");
-      zonesLayer = L.geoJson(RZ, {
-        style: function(feature) {
-          return {
-            fillColor: zoneColors[feature.properties.NAME_ENGLI],
-            fillOpacity: 0.8,
-            color: zoneColors[feature.properties.NAME_ENGLI],
-            weight: 3.0,
-            opacity: 1.0
-          };
-        },
-        onEachFeature: function(feature, layer) {
-          layer.bindPopup("Zone: " + feature.properties.NAME_ENGLI);
-        }
-      }).addTo(map);
-
-      // Add the heatmap for waste containers after loading
-      $.getJSON("wasteContainer.json", function(WC) {
-        wasteColors = assignRandomColors(WC, "TYPE_OF_WA");
-        wasteContainersLayer = L.geoJson(WC, {
-          pointToLayer: function(feature, latlng) {
-            const color = wasteColors[feature.properties.TYPE_OF_WA];
-            return L.circleMarker(latlng, { radius: 8, fillColor: color, color: color, weight: 3, opacity: 1, fillOpacity: 0.9 });
-          },
-          onEachFeature: function(feature, layer) {
-            layer.bindPopup("Container Type: " + feature.properties.TYPE_OF_WA);
-          }
-        }).addTo(map);
-
-        // Add heatmap for waste containers
-        addHeatmapData(WC);
-      });
-    });
-
-    // Load data for roads
-    $.getJSON("mygeodata_merged.json", function(roadData) {
-      roadColors = assignRandomColors(roadData, "Class");
-      roadsLayer = L.geoJson(roadData, {
-        style: function(feature) {
-          return {
-            color: roadColors[feature.properties.Class],
-            weight: 2,
-            opacity: 1
-          };
-        },
-        onEachFeature: function(feature, layer) {
-          layer.bindPopup("Road: " + feature.properties.Class);
-        }
-      }).addTo(map);
-    });
-
-    // Add user location tracking
-    const locateControl = L.control.locate({
-      position: 'topright',
-      strings: { title: "Show my location" },
-      setView: true,
-      follow: true
-    }).addTo(map);
-
-    // Add legend
     function addLegend() {
       const legend = L.control({ position: 'topright' });
       legend.onAdd = function () {
@@ -195,40 +129,72 @@
       legend.addTo(map);
     }
 
-    // Layer control buttons
-    document.getElementById("toggle-zones").addEventListener("click", function() {
-      if (map.hasLayer(zonesLayer)) {
-        map.removeLayer(zonesLayer);
-      } else {
-        map.addLayer(zonesLayer);
-      }
+    $.getJSON("RamallahZones.json", function(RZ) {
+      zoneColors = assignRandomColors(RZ, "NAME_ENGLI");
+      zonesLayer = L.geoJson(RZ, {
+        style: feature => ({
+          fillColor: zoneColors[feature.properties.NAME_ENGLI],
+          fillOpacity: 0.8,
+          color: zoneColors[feature.properties.NAME_ENGLI],
+          weight: 3.0,
+          opacity: 1.0
+        }),
+        onEachFeature: (feature, layer) => layer.bindPopup("Zone: " + feature.properties.NAME_ENGLI)
+      }).addTo(map);
+      addLegend();
     });
 
-    document.getElementById("toggle-waste").addEventListener("click", function() {
-      if (map.hasLayer(wasteContainersLayer)) {
-        map.removeLayer(wasteContainersLayer);
-      } else {
-        map.addLayer(wasteContainersLayer);
-      }
+    $.getJSON("wasteContainer.json", function(WC) {
+      wasteColors = assignRandomColors(WC, "TYPE_OF_WA");
+      wasteContainersLayer = L.geoJson(WC, {
+        pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
+          radius: 8,
+          fillColor: wasteColors[feature.properties.TYPE_OF_WA],
+          color: wasteColors[feature.properties.TYPE_OF_WA],
+          weight: 3,
+          opacity: 1,
+          fillOpacity: 0.9
+        }),
+        onEachFeature: (feature, layer) => layer.bindPopup("Container Type: " + feature.properties.TYPE_OF_WA)
+      }).addTo(map);
+      addHeatmapData(WC);
     });
 
-    document.getElementById("toggle-roads").addEventListener("click", function() {
-      if (map.hasLayer(roadsLayer)) {
-        map.removeLayer(roadsLayer);
-      } else {
-        map.addLayer(roadsLayer);
-      }
+    $.getJSON("mygeodata_merged.json", function(roadData) {
+      roadColors = assignRandomColors(roadData, "Class");
+      roadsLayer = L.geoJson(roadData, {
+        style: feature => ({
+          color: roadColors[feature.properties.Class],
+          weight: 2,
+          opacity: 1
+        }),
+        onEachFeature: (feature, layer) => layer.bindPopup("Road: " + feature.properties.Class)
+      }).addTo(map);
     });
 
-    document.getElementById("toggle-heatmap").addEventListener("click", function() {
-      if (map.hasLayer(heatmapLayer)) {
-        map.removeLayer(heatmapLayer);
-      } else {
-        map.addLayer(heatmapLayer);
-      }
+    const locateControl = L.control.locate({
+      position: 'topright',
+      setView: true,
+      follow: true
+    }).addTo(map);
+
+    document.getElementById("toggle-zones").addEventListener("click", () => {
+      map.hasLayer(zonesLayer) ? map.removeLayer(zonesLayer) : map.addLayer(zonesLayer);
     });
 
-    document.getElementById("toggle-location").addEventListener("click", function() {
+    document.getElementById("toggle-waste").addEventListener("click", () => {
+      map.hasLayer(wasteContainersLayer) ? map.removeLayer(wasteContainersLayer) : map.addLayer(wasteContainersLayer);
+    });
+
+    document.getElementById("toggle-roads").addEventListener("click", () => {
+      map.hasLayer(roadsLayer) ? map.removeLayer(roadsLayer) : map.addLayer(roadsLayer);
+    });
+
+    document.getElementById("toggle-heatmap").addEventListener("click", () => {
+      map.hasLayer(heatmapLayer) ? map.removeLayer(heatmapLayer) : map.addLayer(heatmapLayer);
+    });
+
+    document.getElementById("toggle-location").addEventListener("click", () => {
       locateControl.start();
     });
   </script>
