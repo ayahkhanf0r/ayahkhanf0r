@@ -22,6 +22,21 @@
       margin-right: 8px;
       opacity: 0.8;
     }
+    /* Center layer toggle buttons */
+    .layer-toggle-buttons {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 1000;
+    }
+    .layer-toggle-buttons button {
+      font-size: 20px;
+      padding: 5px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -37,27 +52,11 @@
   <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script> 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script> 
 
-  <!-- Your map setup script -->
   <script> 
     const mapOptions = { 
       zoomSnap: 0.5, 
       center: [31.9045, 35.2045], 
       zoom: 19, 
-    };
-
-    const map = L.map("map", mapOptions);
-    // Add other map configurations and layer setup here...
-  </script>
-</body>
-
-
-  <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-  <script>
-    const mapOptions = {
-      zoomSnap: 0.5,
-      center: [31.9045, 35.2045],
-      zoom: 19,
     };
     const map = L.map("map", mapOptions);
 
@@ -88,7 +87,7 @@
       return colors;
     }
 
-    // تحميل بيانات RamallahZones وتطبيق الألوان حسب الفئات في NAME_ENGLI
+    // Load RamallahZones data and apply colors by category in NAME_ENGLI
     $.getJSON("RamallahZones.json", function(RZ) {
       zoneColors = assignRandomColors(RZ, "NAME_ENGLI");
       zonesLayer = L.geoJson(RZ, {
@@ -105,12 +104,10 @@
           layer.bindPopup("Zone: " + feature.properties.NAME_ENGLI);
         }
       }).addTo(map);
-
-      // إضافة الخريطة التوضيحية بعد تحميل طبقة المناطق
       addLegend();
     });
 
-    // تحميل بيانات wasteContainer وتطبيق الألوان حسب الفئات في TYPE_OF_WA
+    // Load wasteContainer data and apply colors by category in TYPE_OF_WA
     $.getJSON("wasteContainer.json", function(WC) {
       wasteColors = assignRandomColors(WC, "TYPE_OF_WA");
       wasteContainersLayer = L.geoJson(WC, {
@@ -124,28 +121,45 @@
       }).addTo(map);
     });
 
-    // دالة لإضافة الخريطة التوضيحية (Legend)
+    // Add legend to map
     function addLegend() {
       const legend = L.control({ position: 'topright' });
       legend.onAdd = function () {
         const div = L.DomUtil.create('div', 'info legend');
-
-        // ألوان مناطق RamallahZones
         div.innerHTML += '<strong>Zones</strong><br>';
         for (const zone in zoneColors) {
           div.innerHTML += `<i style="background:${zoneColors[zone]}"></i> ${zone}<br>`;
         }
-
-        // ألوان أنواع الحاويات wasteContainer
         div.innerHTML += '<strong>Waste Container Types</strong><br>';
         for (const type in wasteColors) {
           div.innerHTML += `<i style="background:${wasteColors[type]}"></i> ${type}<br>`;
         }
-
         return div;
       };
       legend.addTo(map);
     }
+
+    // Toggle layers
+    document.getElementById("toggleZones").addEventListener("click", function() {
+      if (map.hasLayer(zonesLayer)) {
+        map.removeLayer(zonesLayer);
+      } else {
+        map.addLayer(zonesLayer);
+      }
+    });
+
+    document.getElementById("toggleContainers").addEventListener("click", function() {
+      if (map.hasLayer(wasteContainersLayer)) {
+        map.removeLayer(wasteContainersLayer);
+      } else {
+        map.addLayer(wasteContainersLayer);
+      }
+    });
+
+    document.getElementById("toggleRoutes").addEventListener("click", function() {
+      alert("Routes layer functionality not yet implemented.");
+    });
   </script>
-</body> 
+</body>
 </html>
+
