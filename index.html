@@ -95,18 +95,21 @@
     const events = [{ name: "Festival", location: [31.905, 35.203], impactRadius: 0.01, wasteIncrease: 0.2 }];
     const weatherImpact = { "hot": 0.3, "rainy": 0.2 };
 
+    function getRandomColor() {
+      const letters = '0123456789ABCDEF';
+      let color = '#';
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
+    }
+
     function getWasteContainerColor(type) {
-      // Use high-contrast and bright colors for waste types
-      const colorScale = ['#FF0000', '#FFFF00', '#00FF00', '#1E90FF', '#FF1493']; // Bright colors
-      const types = ['Plastic', 'Organic', 'Metal', 'Other'];
-      return colorScale[types.indexOf(type) % colorScale.length];
+      return getRandomColor(); // Assign random color to waste containers
     }
 
     function getZoneColor(name) {
-      // Use high-contrast and bright colors for zones
-      const colorScale = ['#FF6347', '#FF4500', '#32CD32', '#1E90FF', '#FFD700']; // Bright colors
-      const zoneNames = ['Zone1', 'Zone2', 'Zone3', 'Zone4', 'Zone5'];
-      return colorScale[zoneNames.indexOf(name) % colorScale.length];
+      return getRandomColor(); // Assign random color to zones
     }
 
     $.getJSON("RamallahZones.json", function(RZ) {
@@ -150,16 +153,16 @@
     legend.onAdd = function () {
       const div = L.DomUtil.create('div', 'info legend');
       const zoneColors = {
-        "Zone1": "#FF6347",
-        "Zone2": "#FF4500",
-        "Zone3": "#32CD32",
-        "Zone4": "#1E90FF"
+        "Zone1": getRandomColor(),
+        "Zone2": getRandomColor(),
+        "Zone3": getRandomColor(),
+        "Zone4": getRandomColor()
       };
       const wasteTypes = {
-        'Plastic': '#FF0000',
-        'Organic': '#00FF00',
-        'Metal': '#1E90FF',
-        'Other': '#FF1493'
+        'Plastic': getRandomColor(),
+        'Organic': getRandomColor(),
+        'Metal': getRandomColor(),
+        'Other': getRandomColor()
       };
       div.innerHTML += '<strong>Zones</strong><br>';
       for (const zone in zoneColors) {
@@ -200,5 +203,3 @@
   </script>
 </body> 
 </html>
-
-
