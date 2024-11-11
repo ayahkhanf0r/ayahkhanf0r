@@ -1,6 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
+<!DOCTYPE html> 
+<html lang="en"> 
+<head> 
   <meta charset="utf-8" />
   <title>Ramallah Waste Containers</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
@@ -165,6 +165,16 @@
       });
     }
 
+    // Custom Icon
+    const customIcon = L.icon({ 
+      iconUrl: 'https://scontent.fjrs29-1.fna.fbcdn.net/v/t39.30808-6/465173254_8846109878781242_9055420387940093009_n.png?_nc_cat=111&ccb=1-7&_nc_sid=0b6b33&_nc_ohc=QlHt0flg6OMQ7kNvgErQQjc&_nc_zt=23&_nc_ht=scontent.fjrs29-1.fna&_nc_gid=AatuaEmt25TXMQqAweN3NA1&oh=00_AYCirZNYQDVPU2U_BU4xDLSCbzIGpsiZfK8xVmfsnU_4vg&oe=67373517', 
+      iconSize: [50, 50], 
+      iconAnchor: [25, 25]
+    });
+
+    // Adding custom marker
+    const marker = L.marker([31.9045, 35.2045], { icon: customIcon }).addTo(map);
+
     $.getJSON("RamallahZones.json", function(RZ) {
       zoneColors = assignRandomColors(RZ, "NAME_ENGLI");
       zonesLayer = L.geoJson(RZ, {
@@ -189,43 +199,69 @@
           radius: 8,
           fillColor: wasteColors[feature.properties.TYPE_OF_WA],
           color: wasteColors[feature.properties.TYPE_OF_WA],
-          weight: 3,
-          opacity: 1,
-          fillOpacity: 0.9
-        }),
-        onEachFeature: (feature, layer) => layer.bindPopup("Container Type: " + feature.properties.TYPE_OF_WA)
+          weight: 1,
+          fillOpacity: 0.6
+        }).bindPopup("Type: " + feature.properties.TYPE_OF_WA)
       }).addTo(map);
-      addHeatmapData(WC);
       const wasteTypes = [...new Set(WC.features.map(f => f.properties.TYPE_OF_WA))];
       populateDropdown(document.getElementById("waste-filter"), wasteTypes);
     });
 
-    $.getJSON("mygeodata_merged.json", function(roadData) {
-      roadColors = assignRandomColors(roadData, "Class");
-      roadsLayer = L.geoJson(roadData, {
+    $.getJSON("roads.json", function(R) {
+      roadColors = assignRandomColors(R, "CLASS");
+      roadsLayer = L.geoJson(R, {
         style: feature => ({
-          color: roadColors[feature.properties.Class],
-          weight: 2,
-          opacity: 1
+          color: roadColors[feature.properties.CLASS],
+          weight: 3,
+          opacity: 0.8
         }),
-        onEachFeature: (feature, layer) => layer.bindPopup("Road: " + feature.properties.Class)
+        onEachFeature: (feature, layer) => layer.bindPopup("Road Class: " + feature.properties.CLASS)
       }).addTo(map);
-      const roadClasses = [...new Set(roadData.features.map(f => f.properties.Class))];
+      const roadClasses = [...new Set(R.features.map(f => f.properties.CLASS))];
       populateDropdown(document.getElementById("road-filter"), roadClasses);
     });
 
-    const locateControl = L.control.locate({
-      position: 'topright',
-      setView: 'untilPan',
-      flyTo: true,
-      strings: { title: "Show my location" }
-    }).addTo(map);
+    $.getJSON("heatmapData.json", function(H) {
+      addHeatmapData(H);
+    });
 
-    document.getElementById("toggle-zones").onclick = () => zonesLayer && (zonesLayer._map ? map.removeLayer(zonesLayer) : map.addLayer(zonesLayer));
-    document.getElementById("toggle-waste").onclick = () => wasteContainersLayer && (wasteContainersLayer._map ? map.removeLayer(wasteContainersLayer) : map.addLayer(wasteContainersLayer));
-    document.getElementById("toggle-roads").onclick = () => roadsLayer && (roadsLayer._map ? map.removeLayer(roadsLayer) : map.addLayer(roadsLayer));
-    document.getElementById("toggle-heatmap").onclick = () => heatmapLayer && (heatmapLayer._map ? map.removeLayer(heatmapLayer) : map.addLayer(heatmapLayer));
-    document.getElementById("toggle-location").onclick = () => locateControl.start();
+    // Toggle layers
+    $("#toggle-zones").on("click", function() {
+      if (map.hasLayer(zonesLayer)) {
+        map.removeLayer(zonesLayer);
+      } else {
+        map.addLayer(zonesLayer);
+      }
+    });
+
+    $("#toggle-waste").on("click", function() {
+      if (map.hasLayer(wasteContainersLayer)) {
+        map.removeLayer(wasteContainersLayer);
+      } else {
+        map.addLayer(wasteContainersLayer);
+      }
+    });
+
+    $("#toggle-roads").on("click", function() {
+      if (map.hasLayer(roadsLayer)) {
+        map.removeLayer(roadsLayer);
+      } else {
+        map.addLayer(roadsLayer);
+      }
+    });
+
+    $("#toggle-heatmap").on("click", function() {
+      if (map.hasLayer(heatmapLayer)) {
+        map.removeLayer(heatmapLayer);
+      } else {
+        map.addLayer(heatmapLayer);
+      }
+    });
+
+    $("#toggle-location").on("click", function() {
+      map.locate({ setView: true, maxZoom: 16 });
+    });
+
   </script>
 </body>
 </html>
