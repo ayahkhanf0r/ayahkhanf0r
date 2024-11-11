@@ -170,18 +170,15 @@
         dropdown.appendChild(opt);
       });
     }
-    const customIcon = L.icon([31.9045, 35.2045], { icon: customIcon }).addTo(map); 
- L.Control.CustomIcon = L.Control.extend({
-      onAdd: function () {
-        const div = L.DomUtil.create('div', 'bottom-right-icon');
-        const img = L.DomUtil.create('img', 'custom-icon');
-        img.src = customIcon.options.iconUrl:'https://scontent.fjrs29-1.fna.fbcdn.net/v/t39.30808-6/465173254_8846109878781242_9055420387940093009_n.png?_nc_cat=111&ccb=1-7&_nc_sid=0b6b33&_nc_ohc=QlHt0flg6OMQ7kNvgErQQjc&_nc_zt=23&_nc_ht=scontent.fjrs29-1.fna&_nc_gid=AatuaEmt25TXMQqAweN3NA1&oh=00_AYCirZNYQDVPU2U_BU4xDLSCbzIGpsiZfK8xVmfsnU_4vg&oe=67373517' ;
-        div.appendChild(img);
-        return div;
-      },
-      onRemove: function () {}
+
+    const customIcon = L.icon({ 
+      iconUrl: 'https://scontent.fjrs29-1.fna.fbcdn.net/v/t39.30808-6/465173254_8846109878781242_9055420387940093009_n.png?_nc_cat=111&ccb=1-7&_nc_sid=0b6b33&_nc_ohc=QlHt0flg6OMQ7kNvgErQQjc&_nc_zt=23&_nc_ht=scontent.fjrs29-1.fna&_nc_gid=AatuaEmt25TXMQqAweN3NA1&oh=00_AYCirZNYQDVPU2U_BU4xDLSCbzIGpsiZfK8xVmfsnU_4vg&oe=67373517', 
+      iconSize: [50, 50], 
+      iconAnchor: [25, 25]
     });
-    new L.Control.CustomIcon().addTo(map);
+
+    const marker = L.marker([31.9045, 35.2045], { icon: customIcon }).addTo(map);
+
     $.getJSON("RamallahZones.json", function(RZ) {
       zoneColors = assignRandomColors(RZ, "NAME_ENGLI");
       zonesLayer = L.geoJson(RZ, {
@@ -267,3 +264,4 @@
   </script>
 </body>
 </html>
+
