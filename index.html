@@ -28,6 +28,8 @@
 
   <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://unpkg.com/leaflet-heat/dist/leaflet-heat.js"></script>
+  <script src="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.js"></script>
 
   <script>
     const mapOptions = {
@@ -35,17 +37,23 @@
       zoom: 19,
     };
     const map = L.map("map", mapOptions);
+
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; OpenStreetMap & CARTO',
       maxZoom: 20
     }).addTo(map);
 
+    // Load and display your existing layers
+    let zonesLayer, wasteContainersLayer, roadsLayer, heatmapLayer;
+    // Add your existing map setup code here as it was (zone colors, waste colors, road colors, etc.)
+
+    // Variables for main and selected routes
     let mainRouteLayer, selectedRouteLayer;
 
-    // Function to create the main shortest route
+    // Function to create the main shortest route between all waste points
     function createMainRoute() {
       const wastePoints = [
-        // Example coordinates for waste points
+        // Example coordinates for waste points (replace with your actual waste point coordinates)
         [31.9045, 35.2045],
         [31.9040, 35.2040],
         [31.9035, 35.2035],
@@ -57,6 +65,7 @@
         opacity: 0.7,
       };
 
+      // Define the main route polyline
       mainRouteLayer = L.polyline(wastePoints, routeOptions).addTo(map);
       mainRouteLayer.on("click", () => showRouteInfo("Main Route", "5 km", "10 mins"));
     }
@@ -68,12 +77,12 @@
       infoDiv.style.display = "block";
     }
 
-    // Add specific route when selected and hide the main route
+    // Function to create and display a selected specific route
     function createSelectedRoute() {
-      if (mainRouteLayer) map.removeLayer(mainRouteLayer);
+      if (mainRouteLayer) map.removeLayer(mainRouteLayer);  // Hide the main route when a specific route is selected
 
       const selectedRoutePoints = [
-        // Example coordinates for selected route points
+        // Example coordinates for selected route points (replace with specific route coordinates)
         [31.9045, 35.2045],
         [31.9041, 35.2041],
       ];
@@ -84,23 +93,25 @@
         opacity: 0.9,
       };
 
+      // Define the specific route polyline
       selectedRouteLayer = L.polyline(selectedRoutePoints, selectedRouteOptions).addTo(map);
       selectedRouteLayer.on("click", () => showRouteInfo("Selected Route", "2 km", "5 mins"));
     }
 
-    // Hide route info on map click
+    // Add an event listener to hide route info on map click
     map.on("click", () => {
       const infoDiv = document.getElementById("route-info");
       infoDiv.style.display = "none";
     });
 
-    // Initialize main route
+    // Initialize the main route
     createMainRoute();
 
-    // Simulate selecting a specific route after 3 seconds (for demonstration)
+    // Example: Simulate selecting a specific route after 3 seconds
     setTimeout(() => {
       createSelectedRoute();
     }, 3000);
+
   </script>
 </body>
 </html>
