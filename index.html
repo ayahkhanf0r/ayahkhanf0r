@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="en"> 
-<head> 
-  <meta charset="utf-8" /> 
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
   <title>Ramallah Waste Containers</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.css" />
@@ -15,6 +15,13 @@
       border-radius: 5px;
       line-height: 1.5;
       box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    .info.legend i {
+      width: 18px;
+      height: 18px;
+      float: left;
+      margin-right: 8px;
+      opacity: 0.8;
     }
     .layer-controls {
       position: absolute;
@@ -54,6 +61,7 @@
 </head>
 <body>
   <div id="map"></div>
+
   <div class="layer-controls">
     <div id="toggle-zones" class="layer-control-btn">📍</div>
     <div id="toggle-waste" class="layer-control-btn">🗑️</div>
@@ -61,6 +69,7 @@
     <div id="toggle-heatmap" class="layer-control-btn">🔥</div>
     <div id="toggle-location" class="layer-control-btn">𖠋</div>
   </div>
+  
   <div class="search-controls">
     <h4>Search & Filter</h4>
     <label for="zone-filter">Zone:</label>
@@ -70,7 +79,7 @@
     <label for="road-filter">Road Class:</label>
     <select id="road-filter"><option value="">Select Class</option></select>
   </div>
-  
+
   <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
   <script src="https://unpkg.com/leaflet-heat/dist/leaflet-heat.js"></script>
@@ -89,7 +98,7 @@
       maxZoom: 20
     }).addTo(map);
 
-    let zonesLayer, wasteContainersLayer, roadsLayer;
+    let zonesLayer, wasteContainersLayer, roadsLayer, heatmapLayer;
     let zoneColors = {}, wasteColors = {}, roadColors = {};
 
     function getRandomColor() {
@@ -99,6 +108,49 @@
         color += letters[Math.floor(Math.random() * 16)];
       }
       return color;
+    }
+
+    function assignRandomColors(data, field) {
+      const categories = [...new Set(data.features.map(feature => feature.properties[field]))];
+      const colors = {};
+      categories.forEach(category => {
+        colors[category] = getRandomColor();
+      });
+      return colors;
+    }
+
+    function addHeatmapData(data) {
+      const heatPoints = data.features.map(feature => [
+        feature.geometry.coordinates[1],
+        feature.geometry.coordinates[0],
+        feature.properties.SIZE_OF_TH || 0.5 // Intensity based on SIZE_OF_TH
+      ]);
+      heatmapLayer = L.heatLayer(heatPoints, { radius: 25, blur: 15 }).addTo(map);
+    }
+
+    function addLegend() {
+      const legend = L.control({ position: 'topright' });
+      legend.onAdd = function () {
+        const div = L.DomUtil.create('div', 'info legend');
+        
+        div.innerHTML += '<strong>Zones</strong><br>';
+        for (const zone in zoneColors) {
+          div.innerHTML += `<i style="background:${zoneColors[zone]}"></i> ${zone}<br>`;
+        }
+        
+        div.innerHTML += '<strong>Waste Container Types</strong><br>';
+        for (const type in wasteColors) {
+          div.innerHTML += `<i style="background:${wasteColors[type]}"></i> ${type}<br>`;
+        }
+
+        div.innerHTML += '<strong>Road Classes</strong><br>';
+        for (const roadClass in roadColors) {
+          div.innerHTML += `<i style="background:${roadColors[roadClass]}"></i> ${roadClass}<br>`;
+        }
+
+        return div;
+      };
+      legend.addTo(map);
     }
 
     function populateDropdown(dropdown, options) {
@@ -122,6 +174,7 @@
         }),
         onEachFeature: (feature, layer) => layer.bindPopup("Zone: " + feature.properties.NAME_ENGLI)
       }).addTo(map);
+      addLegend();
       const zoneNames = [...new Set(RZ.features.map(f => f.properties.NAME_ENGLI))];
       populateDropdown(document.getElementById("zone-filter"), zoneNames);
     });
@@ -139,6 +192,7 @@
         }),
         onEachFeature: (feature, layer) => layer.bindPopup("Container Type: " + feature.properties.TYPE_OF_WA)
       }).addTo(map);
+      addHeatmapData(WC);
       const wasteTypes = [...new Set(WC.features.map(f => f.properties.TYPE_OF_WA))];
       populateDropdown(document.getElementById("waste-filter"), wasteTypes);
     });
@@ -157,33 +211,27 @@
       populateDropdown(document.getElementById("road-filter"), roadClasses);
     });
 
-    function filterLayers() {
-      const zoneFilter = document.getElementById("zone-filter").value;
-      const wasteFilter = document.getElementById("waste-filter").value;
-      const roadFilter = document.getElementById("road-filter").value;
+    const locateControl = L.control.locate({
+      position: 'topright',
+      setView: true,
+      follow: true
+    }).addTo(map);
 
-      zonesLayer.eachLayer(layer => {
-        layer.setStyle({
-          opacity: layer.feature.properties.NAME_ENGLI === zoneFilter || !zoneFilter ? 1 : 0
-        });
-      });
-      
-      wasteContainersLayer.eachLayer(layer => {
-        layer.setStyle({
-          opacity: layer.feature.properties.TYPE_OF_WA === wasteFilter || !wasteFilter ? 1 : 0
-        });
-      });
-
-      roadsLayer.eachLayer(layer => {
-        layer.setStyle({
-          opacity: layer.feature.properties.Class === roadFilter || !roadFilter ? 1 : 0
-        });
-      });
+    function toggleLayerVisibility(layer, button) {
+      if (map.hasLayer(layer)) {
+        map.removeLayer(layer);
+        button.style.backgroundColor = '#eee';
+      } else {
+        map.addLayer(layer);
+        button.style.backgroundColor = '#fff';
+      }
     }
 
-    document.getElementById("zone-filter").addEventListener("change", filterLayers);
-    document.getElementById("waste-filter").addEventListener("change", filterLayers);
-    document.getElementById("road-filter").addEventListener("change", filterLayers);
+    document.getElementById("toggle-zones").onclick = () => toggleLayerVisibility(zonesLayer, document.getElementById("toggle-zones"));
+    document.getElementById("toggle-waste").onclick = () => toggleLayerVisibility(wasteContainersLayer, document.getElementById("toggle-waste"));
+    document.getElementById("toggle-roads").onclick = () => toggleLayerVisibility(roadsLayer, document.getElementById("toggle-roads"));
+    document.getElementById("toggle-heatmap").onclick = () => toggleLayerVisibility(heatmapLayer, document.getElementById("toggle-heatmap"));
+    document.getElementById("toggle-location").onclick = () => locateControl.start();
   </script>
-</body> 
+</body>
 </html>
