@@ -66,12 +66,6 @@
       width: 50px;
       height: 50px;
     }
-    .bottom-right-icon {
-      position: absolute;
-      bottom: 10px;
-      right: 10px;
-      z-index: 1000;
-    }
   </style>
 </head>
 <body>
@@ -185,45 +179,35 @@
 
     const marker = L.marker([31.9045, 35.2045], { icon: customIcon }).addTo(map);
 
-    // Add custom control to place the icon at the bottom-right corner
-    L.Control.CustomIcon = L.Control.extend({
-      onAdd: function () {
-        const div = L.DomUtil.create('div', 'bottom-right-icon');
-        const img = L.DomUtil.create('img', 'custom-icon');
-        img.src = customIcon.options.iconUrl;
-        div.appendChild(img);
-        return div;
-      },
-      onRemove: function () {}
-    });
-    new L.Control.CustomIcon().addTo(map);
-
-    // Filter functionality
-    $.getJSON("zones.json", function(RZ) {
+    $.getJSON("RamallahZones.json", function(RZ) {
+      zoneColors = assignRandomColors(RZ, "NAME_ENGLI");
       zonesLayer = L.geoJson(RZ, {
         style: feature => ({
-          color: zoneColors[feature.properties.NAME_ENGL],
-          weight: 1,
-          opacity: 0.8,
-          fillOpacity: 0.6
-        })
+          fillColor: zoneColors[feature.properties.NAME_ENGLI],
+          fillOpacity: 0.8,
+          color: zoneColors[feature.properties.NAME_ENGLI],
+          weight: 3.0,
+          opacity: 1.0
+        }),
+        onEachFeature: (feature, layer) => layer.bindPopup("Zone: " + feature.properties.NAME_ENGLI)
       }).addTo(map);
-
-      const zones = [...new Set(RZ.features.map(f => f.properties.NAME_ENGL))];
-      populateDropdown(document.getElementById("zone-filter"), zones);
+      addLegend();
+      const zoneNames = [...new Set(RZ.features.map(f => f.properties.NAME_ENGLI))];
+      populateDropdown(document.getElementById("zone-filter"), zoneNames);
     });
 
-    $.getJSON("waste_containers.json", function(WC) {
+    $.getJSON("wasteContainer.json", function(WC) {
       wasteColors = assignRandomColors(WC, "TYPE_OF_WA");
       wasteContainersLayer = L.geoJson(WC, {
-        style: feature => ({
+        pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
+          radius: 8,
+          fillColor: wasteColors[feature.properties.TYPE_OF_WA],
           color: wasteColors[feature.properties.TYPE_OF_WA],
           weight: 1,
           opacity: 0.8,
           fillOpacity: 0.6
         })
       }).addTo(map);
-
       const wasteTypes = [...new Set(WC.features.map(f => f.properties.TYPE_OF_WA))];
       populateDropdown(document.getElementById("waste-filter"), wasteTypes);
     });
@@ -238,73 +222,12 @@
         }),
         onEachFeature: (feature, layer) => layer.bindPopup("Road Class: " + feature.properties.ROAD_CLASS)
       }).addTo(map);
-
       const roadClasses = [...new Set(Roads.features.map(f => f.properties.ROAD_CLASS))];
       populateDropdown(document.getElementById("road-filter"), roadClasses);
     });
 
     $.getJSON("heatmapData.json", function(data) {
       addHeatmapData(data);
-    });
-
-    // Event listener for the filter functionality
-    document.getElementById("zone-filter").addEventListener("change", function(event) {
-      const selectedZone = event.target.value;
-      if (zonesLayer) {
-        zonesLayer.clearLayers();
-        if (selectedZone) {
-          const filteredZones = RZ.features.filter(f => f.properties.NAME_ENGL === selectedZone);
-          L.geoJson(filteredZones, {
-            style: feature => ({
-              color: zoneColors[feature.properties.NAME_ENGL],
-              weight: 1,
-              opacity: 0.8,
-              fillOpacity: 0.6
-            })
-          }).addTo(map);
-        } else {
-          zonesLayer.addTo(map);
-        }
-      }
-    });
-
-    document.getElementById("waste-filter").addEventListener("change", function(event) {
-      const selectedWasteType = event.target.value;
-      if (wasteContainersLayer) {
-        wasteContainersLayer.clearLayers();
-        if (selectedWasteType) {
-          const filteredWasteContainers = WC.features.filter(f => f.properties.TYPE_OF_WA === selectedWasteType);
-          L.geoJson(filteredWasteContainers, {
-            style: feature => ({
-              color: wasteColors[feature.properties.TYPE_OF_WA],
-              weight: 1,
-              opacity: 0.8,
-              fillOpacity: 0.6
-            })
-          }).addTo(map);
-        } else {
-          wasteContainersLayer.addTo(map);
-        }
-      }
-    });
-
-    document.getElementById("road-filter").addEventListener("change", function(event) {
-      const selectedRoadClass = event.target.value;
-      if (roadsLayer) {
-        roadsLayer.clearLayers();
-        if (selectedRoadClass) {
-          const filteredRoads = Roads.features.filter(f => f.properties.ROAD_CLASS === selectedRoadClass);
-          L.geoJson(filteredRoads, {
-            style: feature => ({
-              color: roadColors[feature.properties.ROAD_CLASS],
-              weight: 3,
-              opacity: 0.8
-            })
-          }).addTo(map);
-        } else {
-          roadsLayer.addTo(map);
-        }
-      }
     });
 
     const controlButtonEvents = {
@@ -337,7 +260,7 @@
       document.getElementById(id).addEventListener("click", controlButtonEvents[id]);
     });
 
-    L.control.locate({ position: "bottomright" }).addTo(map);
+    L.control.locate({ position: "topright" }).addTo(map);
   </script>
 </body>
 </html>
