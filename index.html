@@ -57,7 +57,7 @@
     <div id="toggle-waste" class="layer-control-btn">🗑️</div>
     <div id="toggle-roads" class="layer-control-btn">🛤️</div>
     <div id="toggle-heatmap" class="layer-control-btn">🔥</div>
-    <div id="toggle-location" class="layer-control-btn">📍</div>
+    <div id="toggle-location" class="layer-control-btn">𖠋</div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
@@ -103,7 +103,7 @@
       const heatPoints = data.features.map(feature => [
         feature.geometry.coordinates[1],
         feature.geometry.coordinates[0],
-        feature.properties.SIZE_OF_TH || 0.5 // Intensity based on SIZE_OF_TH; default to 0.5 if missing
+        feature.properties.SIZE_OF_TH || 0.5 // Intensity based on SIZE_OF_TH
       ]);
       heatmapLayer = L.heatLayer(heatPoints, { radius: 25, blur: 15 }).addTo(map);
     }
@@ -112,18 +112,32 @@
       const legend = L.control({ position: 'topright' });
       legend.onAdd = function () {
         const div = L.DomUtil.create('div', 'info legend');
+        
+        // Zones
         div.innerHTML += '<strong>Zones</strong><br>';
         for (const zone in zoneColors) {
           div.innerHTML += `<i style="background:${zoneColors[zone]}"></i> ${zone}<br>`;
         }
+        
+        // Waste Container Types
         div.innerHTML += '<strong>Waste Container Types</strong><br>';
         for (const type in wasteColors) {
           div.innerHTML += `<i style="background:${wasteColors[type]}"></i> ${type}<br>`;
         }
+
+        // Roads
         div.innerHTML += '<strong>Road Classes</strong><br>';
         for (const roadClass in roadColors) {
           div.innerHTML += `<i style="background:${roadColors[roadClass]}"></i> ${roadClass}<br>`;
         }
+
+        // Heatmap intensity
+        div.innerHTML += '<strong>Heatmap Intensity (Size of Container)</strong><br>';
+        const intensities = [0.1, 0.5, 1.0, 1.5, 2.0];  // Adjust these based on data
+        intensities.forEach(intensity => {
+          div.innerHTML += `<i style="background:rgba(255,0,0,${intensity / 2})"></i> ${intensity}<br>`;
+        });
+
         return div;
       };
       legend.addTo(map);
@@ -141,7 +155,7 @@
         }),
         onEachFeature: (feature, layer) => layer.bindPopup("Zone: " + feature.properties.NAME_ENGLI)
       }).addTo(map);
-      addLegend();
+      addLegend(); // Add legend after loading zones layer
     });
 
     $.getJSON("wasteContainer.json", function(WC) {
@@ -157,7 +171,7 @@
         }),
         onEachFeature: (feature, layer) => layer.bindPopup("Container Type: " + feature.properties.TYPE_OF_WA)
       }).addTo(map);
-      addHeatmapData(WC);
+      addHeatmapData(WC); // Create heatmap from waste container data
     });
 
     $.getJSON("mygeodata_merged.json", function(roadData) {
