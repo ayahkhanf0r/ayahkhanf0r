@@ -64,8 +64,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
   <script src="https://unpkg.com/leaflet-heat/dist/leaflet-heat.js"></script>
   <script src="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.12/leaflet-routing-machine.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
   <script>
     const mapOptions = {
       zoomSnap: 0.5,
@@ -80,7 +78,7 @@
       maxZoom: 20
     }).addTo(map);
 
-    let zonesLayer, wasteContainersLayer, roadsLayer, heatmapLayer, mainRouteLayer, specificRouteLayer;
+    let zonesLayer, wasteContainersLayer, roadsLayer, heatmapLayer;
     let zoneColors = {}, wasteColors = {}, roadColors = {};
 
     function getRandomColor() {
@@ -145,41 +143,6 @@
       legend.addTo(map);
     }
 
-    function createMainRoute(data) {
-      const coordinates = data.features.map(feature => [
-        feature.geometry.coordinates[1],
-        feature.geometry.coordinates[0]
-      ]);
-      mainRouteLayer = L.polyline(coordinates, { color: 'blue', weight: 5 }).addTo(map);
-    }
-
-    function createSpecificRoute(coordinates, routeDetails) {
-      if (specificRouteLayer) {
-        map.removeLayer(specificRouteLayer);
-      }
-      specificRouteLayer = L.polyline(coordinates, { color: 'red', weight: 5 }).addTo(map);
-      mainRouteLayer.setStyle({ opacity: 0 });
-      alert(`Route Info:\nDistance: ${routeDetails.distance}\nTime: ${routeDetails.time}\nType: ${routeDetails.type}`);
-    }
-
-    // Example usage: Create main route on load
-    $.getJSON("wasteContainer.json", function(WC) {
-      wasteColors = assignRandomColors(WC, "TYPE_OF_WA");
-      wasteContainersLayer = L.geoJson(WC, {
-        pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
-          radius: 8,
-          fillColor: wasteColors[feature.properties.TYPE_OF_WA],
-          color: wasteColors[feature.properties.TYPE_OF_WA],
-          weight: 3,
-          opacity: 1,
-          fillOpacity: 0.9
-        }),
-        onEachFeature: (feature, layer) => layer.bindPopup("Container Type: " + feature.properties.TYPE_OF_WA)
-      }).addTo(map);
-      createMainRoute(WC);
-      addHeatmapData(WC); // Create heatmap from waste container data
-    });
-
     $.getJSON("RamallahZones.json", function(RZ) {
       zoneColors = assignRandomColors(RZ, "NAME_ENGLI");
       zonesLayer = L.geoJson(RZ, {
@@ -194,8 +157,24 @@
       }).addTo(map);
       addLegend(); // Add legend after loading zones layer
     });
-$.getJSON("mygeodata_merged[_{{{CITATION{{{_1{](https://github.com/hakimhammadache/app1/tree/f01ecb0045bc78e40bea734253eaee2fa5359557/views%2Fterrain%2Findex.php)[_{{{CITATION{{{_2{](https://github.com/achmadwikan/Webgis-mall-sidoarjo/tree/3cfa0ac93c5354b826c6e7621da4a0dfcda361f5/resources%2Fviews%2Flanding%2Fhome.blade.php)[_{{{CITATION{{{_3{](https://github.com/monkeybits/edilcloud-account/tree/592d01b540d5cafcd650e68037590680dc405385/src%2Fapp%2Fmain%2Fapps%2Fnotes%2Fcontacts%2Fstore%2Freducers%2Fcontacts.reducer.js)
-              $.getJSON("mygeodata_merged.json", function(roadData) {
+
+    $.getJSON("wasteContainer.json", function(WC) {
+      wasteColors = assignRandomColors(WC, "TYPE_OF_WA");
+      wasteContainersLayer = L.geoJson(WC, {
+        pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
+          radius: 8,
+          fillColor: wasteColors[feature.properties.TYPE_OF_WA],
+          color: wasteColors[feature.properties.TYPE_OF_WA],
+          weight: 3,
+          opacity: 1,
+          fillOpacity: 0.9
+        }),
+        onEachFeature: (feature, layer) => layer.bindPopup("Container Type: " + feature.properties.TYPE_OF_WA)
+      }).addTo(map);
+      addHeatmapData(WC); // Create heatmap from waste container data
+    });
+
+    $.getJSON("mygeodata_merged.json", function(roadData) {
       roadColors = assignRandomColors(roadData, "Class");
       roadsLayer = L.geoJson(roadData, {
         style: feature => ({
