@@ -129,20 +129,23 @@
     }
 
     function addLegend() {
-      const legend = L.control({ position: 'topright' });
+      const legend = L.control({ position: 'bottomleft' });
       legend.onAdd = function () {
         const div = L.DomUtil.create('div', 'info legend');
         
+        // Zones
         div.innerHTML += '<strong>Zones</strong><br>';
         for (const zone in zoneColors) {
           div.innerHTML += `<i style="background:${zoneColors[zone]}"></i> ${zone}<br>`;
         }
         
+        // Waste Container Types
         div.innerHTML += '<strong>Waste Container Types</strong><br>';
         for (const type in wasteColors) {
           div.innerHTML += `<i style="background:${wasteColors[type]}"></i> ${type}<br>`;
         }
 
+        // Roads
         div.innerHTML += '<strong>Road Classes</strong><br>';
         for (const roadClass in roadColors) {
           div.innerHTML += `<i style="background:${roadColors[roadClass]}"></i> ${roadClass}<br>`;
@@ -213,24 +216,15 @@
 
     const locateControl = L.control.locate({
       position: 'topright',
-      setView: true,
-      follow: true
+      setView: 'untilPan',
+      flyTo: true,
+      strings: { title: "Show my location" }
     }).addTo(map);
 
-    function toggleLayerVisibility(layer, button) {
-      if (map.hasLayer(layer)) {
-        map.removeLayer(layer);
-        button.style.backgroundColor = '#eee';
-      } else {
-        map.addLayer(layer);
-        button.style.backgroundColor = '#fff';
-      }
-    }
-
-    document.getElementById("toggle-zones").onclick = () => toggleLayerVisibility(zonesLayer, document.getElementById("toggle-zones"));
-    document.getElementById("toggle-waste").onclick = () => toggleLayerVisibility(wasteContainersLayer, document.getElementById("toggle-waste"));
-    document.getElementById("toggle-roads").onclick = () => toggleLayerVisibility(roadsLayer, document.getElementById("toggle-roads"));
-    document.getElementById("toggle-heatmap").onclick = () => toggleLayerVisibility(heatmapLayer, document.getElementById("toggle-heatmap"));
+    document.getElementById("toggle-zones").onclick = () => zonesLayer && (zonesLayer._map ? map.removeLayer(zonesLayer) : map.addLayer(zonesLayer));
+    document.getElementById("toggle-waste").onclick = () => wasteContainersLayer && (wasteContainersLayer._map ? map.removeLayer(wasteContainersLayer) : map.addLayer(wasteContainersLayer));
+    document.getElementById("toggle-roads").onclick = () => roadsLayer && (roadsLayer._map ? map.removeLayer(roadsLayer) : map.addLayer(roadsLayer));
+    document.getElementById("toggle-heatmap").onclick = () => heatmapLayer && (heatmapLayer._map ? map.removeLayer(heatmapLayer) : map.addLayer(heatmapLayer));
     document.getElementById("toggle-location").onclick = () => locateControl.start();
   </script>
 </body>
