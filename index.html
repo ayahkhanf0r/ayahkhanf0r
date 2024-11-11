@@ -8,31 +8,65 @@
   <style>
     body { margin: 0; height: 100%; width: 100%; }
     #map { position: absolute; width: 100%; top: 0; bottom: 0; }
-    .route-info {
-      position: absolute;
-      bottom: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.7);
+    .info.legend {
+      background-color: green;
       color: white;
       padding: 10px;
       border-radius: 5px;
-      font-size: 14px;
-      display: none;
+      line-height: 1.5;
+      box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    .info.legend i {
+      width: 18px;
+      height: 18px;
+      float: left;
+      margin-right: 8px;
+      opacity: 0.8;
+    }
+    .layer-controls {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      display: flex;
+      gap: 10px;
+    }
+    .layer-control-btn {
+      background-color: #fff;
+      border: 2px solid #444;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+    }
+    .layer-control-btn:hover {
+      background-color: #eee;
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div class="route-info" id="route-info"></div>
+
+  <div class="layer-controls">
+    <div id="toggle-zones" class="layer-control-btn">📍</div>
+    <div id="toggle-waste" class="layer-control-btn">🗑️</div>
+    <div id="toggle-roads" class="layer-control-btn">🛤️</div>
+    <div id="toggle-heatmap" class="layer-control-btn">🔥</div>
+    <div id="toggle-location" class="layer-control-btn">𖠋</div>
+  </div>
 
   <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
   <script src="https://unpkg.com/leaflet-heat/dist/leaflet-heat.js"></script>
   <script src="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.js"></script>
-
   <script>
     const mapOptions = {
+      zoomSnap: 0.5,
       center: [31.9045, 35.2045],
       zoom: 19,
     };
@@ -40,78 +74,143 @@
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; OpenStreetMap & CARTO',
+      subdomains: 'abcd',
       maxZoom: 20
     }).addTo(map);
 
-    // Load and display your existing layers
     let zonesLayer, wasteContainersLayer, roadsLayer, heatmapLayer;
-    // Add your existing map setup code here as it was (zone colors, waste colors, road colors, etc.)
+    let zoneColors = {}, wasteColors = {}, roadColors = {};
 
-    // Variables for main and selected routes
-    let mainRouteLayer, selectedRouteLayer;
+    function getRandomColor() {
+      const letters = '0123456789ABCDEF';
+      let color = '#';
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
+    }
 
-    // Function to create the main shortest route between all waste points
-    function createMainRoute() {
-      const wastePoints = [
-        // Example coordinates for waste points (replace with your actual waste point coordinates)
-        [31.9045, 35.2045],
-        [31.9040, 35.2040],
-        [31.9035, 35.2035],
-      ];
+    function assignRandomColors(data, field) {
+      const categories = [...new Set(data.features.map(feature => feature.properties[field]))];
+      const colors = {};
+      categories.forEach(category => {
+        colors[category] = getRandomColor();
+      });
+      return colors;
+    }
 
-      const routeOptions = {
-        color: 'blue',
-        weight: 5,
-        opacity: 0.7,
+    function addHeatmapData(data) {
+      const heatPoints = data.features.map(feature => [
+        feature.geometry.coordinates[1],
+        feature.geometry.coordinates[0],
+        feature.properties.SIZE_OF_TH || 0.5 // Intensity based on SIZE_OF_TH
+      ]);
+      heatmapLayer = L.heatLayer(heatPoints, { radius: 25, blur: 15 }).addTo(map);
+    }
+
+    function addLegend() {
+      const legend = L.control({ position: 'topright' });
+      legend.onAdd = function () {
+        const div = L.DomUtil.create('div', 'info legend');
+        
+        // Zones
+        div.innerHTML += '<strong>Zones</strong><br>';
+        for (const zone in zoneColors) {
+          div.innerHTML += `<i style="background:${zoneColors[zone]}"></i> ${zone}<br>`;
+        }
+        
+        // Waste Container Types
+        div.innerHTML += '<strong>Waste Container Types</strong><br>';
+        for (const type in wasteColors) {
+          div.innerHTML += `<i style="background:${wasteColors[type]}"></i> ${type}<br>`;
+        }
+
+        // Roads
+        div.innerHTML += '<strong>Road Classes</strong><br>';
+        for (const roadClass in roadColors) {
+          div.innerHTML += `<i style="background:${roadColors[roadClass]}"></i> ${roadClass}<br>`;
+        }
+
+        // Heatmap intensity
+        div.innerHTML += '<strong>Heatmap Intensity (Size of Container)</strong><br>';
+        const intensities = [0.1, 0.5, 1.0, 1.5, 2.0];  // Adjust these based on data
+        intensities.forEach(intensity => {
+          div.innerHTML += `<i style="background:rgba(255,0,0,${intensity / 2})"></i> ${intensity}<br>`;
+        });
+
+        return div;
       };
-
-      // Define the main route polyline
-      mainRouteLayer = L.polyline(wastePoints, routeOptions).addTo(map);
-      mainRouteLayer.on("click", () => showRouteInfo("Main Route", "5 km", "10 mins"));
+      legend.addTo(map);
     }
 
-    // Function to show route information
-    function showRouteInfo(type, distance, time) {
-      const infoDiv = document.getElementById("route-info");
-      infoDiv.innerHTML = `Type: ${type} | Distance: ${distance} | Time: ${time}`;
-      infoDiv.style.display = "block";
-    }
-
-    // Function to create and display a selected specific route
-    function createSelectedRoute() {
-      if (mainRouteLayer) map.removeLayer(mainRouteLayer);  // Hide the main route when a specific route is selected
-
-      const selectedRoutePoints = [
-        // Example coordinates for selected route points (replace with specific route coordinates)
-        [31.9045, 35.2045],
-        [31.9041, 35.2041],
-      ];
-
-      const selectedRouteOptions = {
-        color: 'red',
-        weight: 5,
-        opacity: 0.9,
-      };
-
-      // Define the specific route polyline
-      selectedRouteLayer = L.polyline(selectedRoutePoints, selectedRouteOptions).addTo(map);
-      selectedRouteLayer.on("click", () => showRouteInfo("Selected Route", "2 km", "5 mins"));
-    }
-
-    // Add an event listener to hide route info on map click
-    map.on("click", () => {
-      const infoDiv = document.getElementById("route-info");
-      infoDiv.style.display = "none";
+    $.getJSON("RamallahZones.json", function(RZ) {
+      zoneColors = assignRandomColors(RZ, "NAME_ENGLI");
+      zonesLayer = L.geoJson(RZ, {
+        style: feature => ({
+          fillColor: zoneColors[feature.properties.NAME_ENGLI],
+          fillOpacity: 0.8,
+          color: zoneColors[feature.properties.NAME_ENGLI],
+          weight: 3.0,
+          opacity: 1.0
+        }),
+        onEachFeature: (feature, layer) => layer.bindPopup("Zone: " + feature.properties.NAME_ENGLI)
+      }).addTo(map);
+      addLegend(); // Add legend after loading zones layer
     });
 
-    // Initialize the main route
-    createMainRoute();
+    $.getJSON("wasteContainer.json", function(WC) {
+      wasteColors = assignRandomColors(WC, "TYPE_OF_WA");
+      wasteContainersLayer = L.geoJson(WC, {
+        pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
+          radius: 8,
+          fillColor: wasteColors[feature.properties.TYPE_OF_WA],
+          color: wasteColors[feature.properties.TYPE_OF_WA],
+          weight: 3,
+          opacity: 1,
+          fillOpacity: 0.9
+        }),
+        onEachFeature: (feature, layer) => layer.bindPopup("Container Type: " + feature.properties.TYPE_OF_WA)
+      }).addTo(map);
+      addHeatmapData(WC); // Create heatmap from waste container data
+    });
 
-    // Example: Simulate selecting a specific route after 3 seconds
-    setTimeout(() => {
-      createSelectedRoute();
-    }, 3000);
+    $.getJSON("mygeodata_merged.json", function(roadData) {
+      roadColors = assignRandomColors(roadData, "Class");
+      roadsLayer = L.geoJson(roadData, {
+        style: feature => ({
+          color: roadColors[feature.properties.Class],
+          weight: 2,
+          opacity: 1
+        }),
+        onEachFeature: (feature, layer) => layer.bindPopup("Road: " + feature.properties.Class)
+      }).addTo(map);
+    });
 
+    const locateControl = L.control.locate({
+      position: 'topright',
+      setView: true,
+      follow: true
+    }).addTo(map);
+
+    document.getElementById("toggle-zones").addEventListener("click", () => {
+      map.hasLayer(zonesLayer) ? map.removeLayer(zonesLayer) : map.addLayer(zonesLayer);
+    });
+
+    document.getElementById("toggle-waste").addEventListener("click", () => {
+      map.hasLayer(wasteContainersLayer) ? map.removeLayer(wasteContainersLayer) : map.addLayer(wasteContainersLayer);
+    });
+
+    document.getElementById("toggle-roads").addEventListener("click", () => {
+      map.hasLayer(roadsLayer) ? map.removeLayer(roadsLayer) : map.addLayer(roadsLayer);
+    });
+
+    document.getElementById("toggle-heatmap").addEventListener("click", () => {
+      map.hasLayer(heatmapLayer) ? map.removeLayer(heatmapLayer) : map.addLayer(heatmapLayer);
+    });
+
+    document.getElementById("toggle-location").addEventListener("click", () => {
+      locateControl.start();
+    });
   </script>
 </body>
 </html>
